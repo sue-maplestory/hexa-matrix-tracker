@@ -1,5 +1,5 @@
 /* ================= STATE ================= */
-const STORAGE_KEY = "hexaMatrixTrackerData_v4";
+const STORAGE_KEY = "hexaMatrixTrackerData_v5";
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
