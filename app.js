@@ -32,15 +32,11 @@ function defaultProfile(classKey) {
 }
 
 function defaultState() {
-  return {
-    profiles: {
-      Hoyoung: defaultProfile("Hoyoung"),
-      Adele: defaultProfile("Adele"),
-      Kanna: defaultProfile("Kanna"),
-      "Demon Slayer": defaultProfile("Demon Slayer"),
-    },
-    current: "Kanna",
-  };
+  const profiles = {};
+  Object.keys(PRIORITY_CONFIG).forEach((classKey) => {
+    profiles[classKey] = defaultProfile(classKey);
+  });
+  return { profiles, current: "Kanna" };
 }
 
 function loadState() {
