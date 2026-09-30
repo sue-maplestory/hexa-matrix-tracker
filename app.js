@@ -5,6 +5,16 @@ function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
+function slug(s) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+// Icons live at icons/<class>/<node key>.png; missing ones just hide.
+function nodeIcon(classKey, key) {
+  if (!classKey) return "";
+  return `<img class="node-icon" src="icons/${slug(classKey)}/${slug(key)}.png" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
+}
+
 function buildNodesFromTemplate(classKey) {
   const tpl = PRIORITY_CONFIG[classKey];
   if (!tpl) return [];
@@ -39,11 +49,31 @@ function defaultState() {
   return { profiles, current: "Kanna" };
 }
 
+// Saved nodes keep a copy of their display name; resync them with the template.
+function syncNodeNames(st) {
+  Object.values(st.profiles || {}).forEach((p) => {
+    const tpl = p.classKey && PRIORITY_CONFIG[p.classKey];
+    if (!tpl) return;
+    const nameByKey = {};
+    tpl.nodes.forEach((t) => (nameByKey[t.key] = t.name || t.key));
+    // Drop nodes removed from the template, rename the rest.
+    p.nodes = (p.nodes || []).filter((n) => nameByKey[n.key]);
+    p.nodes.forEach((n) => (n.name = nameByKey[n.key]));
+    // Add nodes that were added to the template (or renamed keys).
+    const have = new Set(p.nodes.map((n) => n.key));
+    buildNodesFromTemplate(p.classKey).forEach((n) => {
+      if (!have.has(n.key)) p.nodes.push(n);
+    });
+  });
+}
+
 function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw) {
     try {
-      return JSON.parse(raw);
+      const saved = JSON.parse(raw);
+      syncNodeNames(saved);
+      return saved;
     } catch (e) {}
   }
   return defaultState();
@@ -162,7 +192,7 @@ function renderNodesTab(p) {
                 : { se: 0, frag: 0 };
             const toMax = costBetween(n.type, n.level, MAX_LEVEL);
             return `<tr>
-            <td>${n.name}</td>
+            <td>${nodeIcon(p.classKey, n.key)}${n.name}</td>
             <td>${TYPE_LABEL[n.type] || n.type}</td>
             <td><input type="number" min="0" max="${MAX_LEVEL}" data-action="levelNode" data-id="${n.id}" data-idx="${idx}" value="${n.level}"></td>
             <td>${n.level < MAX_LEVEL ? `${next.se} Erdas / ${next.frag} Frags` : '<span class="lockbadge" style="background:var(--good);color:#111">MAX</span>'}</td>
@@ -259,7 +289,7 @@ function renderSequenceTab(p) {
       ? `
   <div class="panel">
     <h2>Next Upgrade</h2>
-    <div class="value" style="font-size:16px;">${nextStep.node.name}: level ${nextStep.node.level} → ${nextStep.target}</div>
+    <div class="value" style="font-size:16px;">${nodeIcon(p.classKey, nextStep.node.key)}${nextStep.node.name}: level ${nextStep.node.level} → ${nextStep.target}</div>
     <div class="hint">${nextStep.cost.se} Sol Erdas / ${nextStep.cost.frag} Fragments needed for this step ${nextStep.daysFromStart != null ? `(~${nextStep.daysFromStart.toFixed(1)} days at current rate)` : ""}</div>
   </div>`
       : ""
@@ -274,7 +304,7 @@ function renderSequenceTab(p) {
           return `<div class="step-row note"><span class="step-num">${i + 1}</span><span class="step-info">${r.note}</span></div>`;
         return `<div class="step-row ${r.done ? "done" : ""}">
         <span class="step-num">${i + 1}</span>
-        <span class="step-info">${r.node.name} → level ${r.target}
+        <span class="step-info">${nodeIcon(p.classKey, r.node.key)}${r.node.name} → level ${r.target}
           <span class="hint">(${r.cost.se} SE / ${r.cost.frag} Frag · running total: ${r.runningSE} SE / ${r.runningFrag} Frag${r.daysFromStart != null ? ` · ~${r.daysFromStart.toFixed(1)} days` : ""})</span>
         </span>
       </div>`;

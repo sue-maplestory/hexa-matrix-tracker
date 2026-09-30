@@ -1,12 +1,6 @@
 PRIORITY_CONFIG["Hoyoung"] = {
   nodes: [
     {
-      key: "heavenly world",
-      name: "Heavenly World",
-      type: "skill12",
-      level: 0,
-    },
-    {
       key: "apotheosis",
       name: "Sage: Apotheosis",
       type: "skill12",
@@ -14,13 +8,13 @@ PRIORITY_CONFIG["Hoyoung"] = {
     },
     {
       key: "ascent",
-      name: "Sage: Millennial Spirit",
+      name: "Millenium Spirit",
       type: "skill12",
       level: 0,
     },
     {
       key: "rampage",
-      name: "Sage: Maximum Clone Rampage",
+      name: "Sage: Clone Rampage",
       type: "boost",
       level: 0,
     },
@@ -44,20 +38,20 @@ PRIORITY_CONFIG["Hoyoung"] = {
     },
     {
       key: "scroll",
-      name: "Scroll: Vortex & Butterfly",
+      name: "HEXA Scroll: Star Vortex / Scroll: Butterfly Dream",
       type: "mastery",
       level: 0,
     },
     {
       key: "talisman",
-      name: "Talisman: Clone & Ghost",
+      name: "HEXA Talisman: Clone / Talisman: Seeking Ghost Flame",
       type: "mastery",
       level: 0,
     },
-    { key: "basics", name: "Basics Mastery", type: "mastery", level: 0 },
-    { key: "harmony", name: "Universal Harmony", type: "mastery", level: 0 },
-    { key: "lotus", name: "Sol Janus", type: "common12", level: 0 },
-    { key: "hecate", name: "Sol Hecate", type: "common12", level: 0 },
+    { key: "basics", name: "HEXA Heaven: Consuming Flames / Earth: Stone Tremor / Humanity: Gold-Banded Cudgel / [Universal Harmony]", type: "mastery", level: 0 },
+    { key: "harmony", name: "HEXA Heaven: Iron Fan Gale / Earth: Ground-Shattering Wave / Humanity: As-You-Will Fan", type: "mastery", level: 0 },
+    { key: "lotus", name: "Sol Janus: Dawn / Sol Janus: Twilight", type: "common12", level: 0 },
+    { key: "hecate", name: "Sol Hecate: Styx / Charon / Phlegethon", type: "common12", level: 0 },
     { key: "lotus flower", name: "Lotus Flower", type: "common3", level: 0 },
   ],
   priorities: {

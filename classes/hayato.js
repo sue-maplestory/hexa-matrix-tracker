@@ -12,7 +12,7 @@ PRIORITY_CONFIG["Hayato"] = {
     { key: "[Battou] Wailing Heavens", type: "boost", level: 0 },
     { key: "Sol Janus", name: "Sol Janus: Dawn / Sol Janus: Twilight", type: "common12", level: 0 },
     { key: "Sol Hecate", name: "Sol Hecate: Styx / Charon / Phlegethon", type: "common12", level: 0 },
-    { key: "\"Twilight Bloom\"", type: "common3", level: 0 },
+    { key: "Twilight Bloom", type: "common3", level: 0 },
   ],
   priorities: {},
 };

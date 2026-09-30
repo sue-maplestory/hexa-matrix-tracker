@@ -1,18 +1,18 @@
 PRIORITY_CONFIG["Adele"] = {
   nodes: [
     { key: "Maestro", type: "skill12", level: 1 },
-    { key: "Cleave", type: "mastery", level: 0 },
-    { key: "Infinity", type: "boost", level: 0 },
+    { key: "Cleave", name: "HEXA Cleave / Magic Dispatch / Aetherial Arms", type: "mastery", level: 0 },
+    { key: "Infinity", name: "Infinity Blade", type: "boost", level: 0 },
     { key: "Ruin", type: "boost", level: 0 },
-    { key: "Legacy", type: "boost", level: 0 },
+    { key: "Legacy", name: "Legacy Restoration", type: "boost", level: 0 },
     { key: "Storm", type: "boost", level: 0 },
     { key: "Einheit", type: "skill12", level: 0 },
-    { key: "common1", name: "Sol Janus", type: "common12", level: 0 },
-    { key: "common2", name: "Sol Hecate", type: "common12", level: 0 },
-    { key: "common3", name: "Ether: Infinite", type: "common3", level: 0 },
-    { key: "m2", name: "Mastery Core 2", type: "mastery", level: 0 },
-    { key: "m3", name: "Mastery Core 3", type: "mastery", level: 0 },
-    { key: "m4", name: "Mastery Core 4", type: "mastery", level: 0 },
+    { key: "common1", name: "Sol Janus: Dawn / Sol Janus: Twilight", type: "common12", level: 0 },
+    { key: "common2", name: "Sol Hecate: Styx / Charon / Phlegethon", type: "common12", level: 0 },
+    { key: "common3", name: "Conversion Overdrive", type: "common3", level: 0 },
+    { key: "m2", name: "HEXA Hunting Decree / Plummet", type: "mastery", level: 0 },
+    { key: "m3", name: "HEXA Impale / Resonance Rush / Noble Summons / Aether Bloom", type: "mastery", level: 0 },
+    { key: "m4", name: "HEXA Aether Forge / Reign of Destruction / Shardbreaker", type: "mastery", level: 0 },
   ],
   priorities: {
     General: [
