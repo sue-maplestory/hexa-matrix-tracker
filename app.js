@@ -66,7 +66,7 @@ function profileFromImportEntry(entry) {
   const profile = defaultProfile(classKey);
   if (!PRIORITY_CONFIG[classKey]) {
     console.warn(
-      `Import: unknown class "${classKey}" — creating empty profile, no levels restored.`,
+      `Import: unknown class "${classKey}" — creating empty class entry, no levels restored.`,
     );
     return profile;
   }
@@ -91,7 +91,7 @@ function render() {
   const app = document.getElementById("app");
   app.innerHTML = `
     <h1>HEXA Matrix Tracker</h1>
-    <div class="subtitle">Costs verified against source data. Leveling priority order is locked to a fixed configuration <span class="lockbadge">🔒 view only</span></div>
+    <div class="subtitle">Costs verified against source data. Leveling priority order is locked to a fixed configuration</div>
     ${renderTopbar()}
     <div class="tabs">
       <button data-tab="nodes" class="${activeTab === "nodes" ? "active" : ""}">Node Tracker</button>
@@ -105,10 +105,10 @@ function render() {
 }
 
 function renderTopbar() {
-  const names = Object.keys(state.profiles);
+  const names = Object.keys(state.profiles).sort((a, b) => a.localeCompare(b));
   return `
   <div class="topbar">
-    <label style="color:var(--muted);font-size:12px;">Profile:</label>
+    <label style="color:var(--muted);font-size:12px;">Class:</label>
     <select id="profileSelect">
       ${names.map((n) => `<option value="${n}" ${n === state.current ? "selected" : ""}>${n}</option>`).join("")}
     </select>
@@ -172,7 +172,7 @@ function renderNodesTab(p) {
           .join("")}
       </tbody>
     </table>
-    <div class="hint">Node names, types, and the node list itself are all fixed — only your level input is editable.</div>
+    <div class="hint">Skill names, types, and costs are all fixed.</div>
   </div>`;
 }
 
@@ -183,7 +183,7 @@ function renderSequenceTab(p) {
   if (!cfg || presetNames.length === 0) {
     return `<div class="panel">
       <h2>Upgrade Priority</h2>
-      <div class="hint">No built-in priority order is configured for this profile yet. This can only be added by editing priorities.js.</div>
+      <div class="hint">No built-in priority order is configured for this class yet.</div>
     </div>`;
   }
 
@@ -199,7 +199,7 @@ function renderSequenceTab(p) {
     if (step[0] === "NOTE") return { note: step[1] };
     const [key, target] = step;
     const node = nodesByKey[key];
-    if (!node) return { note: `(missing node "${key}" in this profile)` };
+    if (!node) return { note: `(missing node "${key}" in this class)` };
     const from = sim[key];
     const done = from >= target;
     const cost = done
@@ -292,6 +292,37 @@ function renderSequenceTab(p) {
 }
 
 /* ================= EVENTS ================= */
+/* Dialog with a dropdown of class templates. Resolves to the chosen class
+   key, null for "None", or undefined if cancelled. */
+function pickClassTemplate() {
+  return new Promise((resolve) => {
+    const dlg = document.createElement("dialog");
+    dlg.style.cssText =
+      "background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:16px;";
+    dlg.innerHTML = `
+      <form method="dialog">
+        <label>Base this on which class template?<br /><br />
+          <select id="classTemplateSelect">
+            <option value="">None</option>
+            ${Object.keys(PRIORITY_CONFIG).sort((a, b) => a.localeCompare(b)).map((n) => `<option value="${n}">${n}</option>`).join("")}
+          </select>
+        </label>
+        <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
+          <button value="cancel">Cancel</button>
+          <button value="ok">OK</button>
+        </div>
+      </form>`;
+    dlg.addEventListener("close", () => {
+      const ok = dlg.returnValue === "ok";
+      const val = dlg.querySelector("select").value;
+      dlg.remove();
+      resolve(ok ? val || null : undefined);
+    });
+    document.body.appendChild(dlg);
+    dlg.showModal();
+  });
+}
+
 function attachEvents() {
   document.querySelectorAll("[data-tab]").forEach(
     (b) =>
@@ -311,17 +342,12 @@ function attachEvents() {
 
   const newBtn = document.getElementById("newProfileBtn");
   if (newBtn)
-    newBtn.onclick = () => {
+    newBtn.onclick = async () => {
       const name = prompt("New profile name:");
       if (!name || state.profiles[name]) return;
-      const classNames = Object.keys(PRIORITY_CONFIG);
-      const classKey = prompt(
-        `Base this on which class template? (${classNames.join(", ")}, or leave blank for none)`,
-        "",
-      );
-      state.profiles[name] = defaultProfile(
-        classNames.includes(classKey) ? classKey : null,
-      );
+      const classKey = await pickClassTemplate();
+      if (classKey === undefined) return;
+      state.profiles[name] = defaultProfile(classKey);
       state.current = name;
       saveState();
       render();
@@ -329,7 +355,7 @@ function attachEvents() {
   const renameBtn = document.getElementById("renameProfileBtn");
   if (renameBtn)
     renameBtn.onclick = () => {
-      const name = prompt("Rename profile to:", state.current);
+      const name = prompt("Rename class to:", state.current);
       if (name && name !== state.current && !state.profiles[name]) {
         state.profiles[name] = state.profiles[state.current];
         delete state.profiles[state.current];
@@ -394,7 +420,7 @@ function attachEvents() {
             newProfiles[name] = profileFromImportEntry(entry);
           });
           if (Object.keys(newProfiles).length === 0) {
-            alert("No valid profiles found in file.");
+            alert("No valid classes found in file.");
             return;
           }
           state.profiles = newProfiles;

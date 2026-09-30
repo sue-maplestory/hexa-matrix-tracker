@@ -184,7 +184,7 @@ PRIORITY_CONFIG["Kanna"] = {
       ["common3", 30],
       [
         "NOTE",
-        "Sol Janus was not part of the original priority source data — appended here per your instruction to level at lowest priority.",
+        "Sol Janus was not part of the original priority source data — appended here to level at lowest priority.",
       ],
       ["common1", 30],
     ],
