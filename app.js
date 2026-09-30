@@ -146,8 +146,8 @@ function renderNodesTab(p) {
   <div class="panel">
     <h2>Summary</h2>
     <div class="grid">
-      <div class="stat-card"><div class="label">Total to fully max all nodes</div><div class="value">${totalToMax.se} Sol Erda / ${totalToMax.frag} Fragments</div></div>
-      <div class="stat-card"><div class="label">Spent so far (based on current levels)</div><div class="value">${spent.se} Sol Erda / ${spent.frag} Fragments</div></div>
+      <div class="stat-card"><div class="label">Total to fully max all nodes</div><div class="value">${totalToMax.se} Sol Erdas / ${totalToMax.frag} Fragments</div></div>
+      <div class="stat-card"><div class="label">Spent so far (based on current levels)</div><div class="value">${spent.se} Sol Erdas / ${spent.frag} Fragments</div></div>
     </div>
     <div class="progress-bar"><div class="progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
     <div class="hint">${pct.toFixed(2)}% complete</div>
@@ -169,8 +169,8 @@ function renderNodesTab(p) {
             <td>${n.name}</td>
             <td>${TYPE_LABEL[n.type] || n.type}</td>
             <td><input type="number" min="0" max="${MAX_LEVEL}" data-action="levelNode" data-id="${n.id}" data-idx="${idx}" value="${n.level}"></td>
-            <td>${n.level < MAX_LEVEL ? `${next.se} SE / ${next.frag} Frag` : '<span class="lockbadge" style="background:var(--good);color:#111">MAX</span>'}</td>
-            <td>${toMax.se} SE / ${toMax.frag} Frag</td>
+            <td>${n.level < MAX_LEVEL ? `${next.se} Erdas / ${next.frag} Frags` : '<span class="lockbadge" style="background:var(--good);color:#111">MAX</span>'}</td>
+            <td>${toMax.se} Erdas / ${toMax.frag} Frags</td>
           </tr>`;
           })
           .join("")}
@@ -264,7 +264,7 @@ function renderSequenceTab(p) {
   <div class="panel">
     <h2>Next Upgrade</h2>
     <div class="value" style="font-size:16px;">${nextStep.node.name}: level ${nextStep.node.level} → ${nextStep.target}</div>
-    <div class="hint">${nextStep.cost.se} Sol Erda / ${nextStep.cost.frag} Fragments needed for this step ${nextStep.daysFromStart != null ? `(~${nextStep.daysFromStart.toFixed(1)} days at current rate)` : ""}</div>
+    <div class="hint">${nextStep.cost.se} Sol Erdas / ${nextStep.cost.frag} Fragments needed for this step ${nextStep.daysFromStart != null ? `(~${nextStep.daysFromStart.toFixed(1)} days at current rate)` : ""}</div>
   </div>`
       : ""
   }

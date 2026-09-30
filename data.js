@@ -1,6 +1,6 @@
 /* ======================================================================
    COST TABLES — universal per node type, levels 1-30. Verified against
-   Sol Erda/Fragment source sheet. Do NOT edit this to add a new class;
+   Sol Erdas/Fragments source sheet. Do NOT edit this to add a new class;
    just map that class's node names to one of these types in priorities.js.
 ====================================================================== */
 const COST_TABLE = {
