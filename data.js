@@ -100,7 +100,7 @@ const COST_TABLE = {
     [4, 125],
     [10, 250],
   ],
-  enhancement: [
+  boost: [
     [4, 75],
     [1, 23],
     [1, 27],
@@ -201,7 +201,7 @@ const TYPE_LABEL = {
   skill12: "Skill I/II",
   skill3: "Skill III",
   mastery: "Mastery",
-  enhancement: "Enhancement",
+  boost: "Boost",
   common12: "Common I/II",
   common3: "Common III",
 };
