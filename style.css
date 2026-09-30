@@ -1,0 +1,225 @@
+:root {
+  --bg: #1b2130;
+  --panel: #242c3d;
+  --panel2: #2c3549;
+  --accent: #5b7fd6;
+  --purple: #6d5bd6;
+  --pink: #b15bd6;
+  --teal: #3aa0a0;
+  --gray: #8b93a7;
+  --text: #e8ebf2;
+  --muted: #9aa3b8;
+  --good: #4caf7d;
+  --border: #3a4258;
+  --note: #c9a227;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    sans-serif;
+  margin: 0;
+  padding: 0;
+}
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+h1 {
+  font-size: 22px;
+  margin: 0 0 4px;
+}
+.subtitle {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  background: var(--panel);
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+.topbar select,
+.topbar input,
+.topbar button {
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+button {
+  cursor: pointer;
+}
+button.primary {
+  background: var(--accent);
+  border: none;
+  color: white;
+}
+button.danger {
+  background: #c0526a;
+  border: none;
+  color: white;
+}
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.tabs button {
+  background: var(--panel2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+.tabs button.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.panel {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.panel h2 {
+  margin-top: 0;
+  font-size: 15px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+th,
+td {
+  padding: 6px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+th {
+  color: var(--muted);
+  font-weight: 600;
+}
+tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+input[type="number"] {
+  width: 70px;
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 6px;
+}
+input[type="text"] {
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 6px;
+}
+select {
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 6px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 800px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+.stat-card {
+  background: var(--panel2);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+.stat-card .label {
+  color: var(--muted);
+  font-size: 12px;
+}
+.stat-card .value {
+  font-size: 18px;
+  font-weight: 600;
+}
+.small-btn {
+  padding: 3px 8px;
+  font-size: 12px;
+}
+.progress-bar {
+  background: var(--panel2);
+  border-radius: 6px;
+  height: 8px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.progress-fill {
+  background: var(--good);
+  height: 100%;
+}
+.step-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.step-row.done {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+.step-row.note {
+  color: var(--note);
+  font-style: italic;
+  border-left: 3px solid var(--note);
+  padding-left: 8px;
+}
+.step-num {
+  color: var(--muted);
+  width: 28px;
+  flex-shrink: 0;
+}
+.step-info {
+  flex: 1;
+}
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 6px;
+}
+.lockbadge {
+  display: inline-block;
+  background: #3a4258;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 8px;
+}
