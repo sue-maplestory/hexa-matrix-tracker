@@ -207,6 +207,9 @@ const TYPE_LABEL = {
 };
 const MAX_LEVEL = 30;
 
+// Filled in by classes/*.js, one file per class
+const PRIORITY_CONFIG = {};
+
 function costToLevel(type, level) {
   let se = 0,
     frag = 0;
