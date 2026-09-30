@@ -1,5 +1,6 @@
 /* ================= STATE ================= */
-const STORAGE_KEY = "hexaMatrixTrackerData_v5";
+const STORAGE_KEY = "hexaMatrixTrackerData";
+
 function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
@@ -27,8 +28,18 @@ function defaultProfile(classKey) {
     presetName: presetNames[0] || null,
     fragOwned: 0,
     fragPerDay: 0,
-    hexaMain: 0,
-    hexaAdd: 0,
+  };
+}
+
+function defaultState() {
+  return {
+    profiles: {
+      Hoyoung: defaultProfile("Hoyoung"),
+      Adele: defaultProfile("Adele"),
+      Kanna: defaultProfile("Kanna"),
+      "Demon Slayer": defaultProfile("Demon Slayer"),
+    },
+    current: "Kanna",
   };
 }
 
@@ -39,16 +50,9 @@ function loadState() {
       return JSON.parse(raw);
     } catch (e) {}
   }
-  return {
-    profiles: {
-      Hoyoung: defaultProfile("Hoyoung"),
-      Adele: defaultProfile("Adele"),
-      Kanna: defaultProfile("Kanna"),
-      "Demon Slayer": defaultProfile("Demon Slayer"),
-    },
-    current: "Hoyoung",
-  };
+  return defaultState();
 }
+
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
@@ -58,6 +62,31 @@ let activeTab = "nodes";
 
 function curProfile() {
   return state.profiles[state.current];
+}
+
+/* ================= IMPORT / EXPORT HELPERS ================= */
+function profileFromImportEntry(entry) {
+  const classKey = entry.class;
+  const profile = defaultProfile(classKey);
+  if (!PRIORITY_CONFIG[classKey]) {
+    console.warn(
+      `Import: unknown class "${classKey}" — creating empty profile, no levels restored.`,
+    );
+    return profile;
+  }
+  const levelByKey = {};
+  (entry.nodes || []).forEach((n) => {
+    levelByKey[n.key] = n.level;
+  });
+  profile.nodes.forEach((n) => {
+    if (levelByKey.hasOwnProperty(n.key)) {
+      n.level = Math.max(
+        0,
+        Math.min(MAX_LEVEL, parseInt(levelByKey[n.key]) || 0),
+      );
+    }
+  });
+  return profile;
 }
 
 /* ================= RENDER ================= */
@@ -71,11 +100,9 @@ function render() {
     <div class="tabs">
       <button data-tab="nodes" class="${activeTab === "nodes" ? "active" : ""}">Node Tracker</button>
       <button data-tab="sequence" class="${activeTab === "sequence" ? "active" : ""}">Upgrade Priority</button>
-      <button data-tab="hexastats" class="${activeTab === "hexastats" ? "active" : ""}">HEXA Stats</button>
     </div>
     ${activeTab === "nodes" ? renderNodesTab(p) : ""}
     ${activeTab === "sequence" ? renderSequenceTab(p) : ""}
-    ${activeTab === "hexastats" ? renderHexaStatsTab(p) : ""}
     <input type="file" id="importFile" style="display:none" accept="application/json">
   `;
   attachEvents();
@@ -129,38 +156,27 @@ function renderNodesTab(p) {
   <div class="panel">
     <h2>Nodes</h2>
     <table>
-      <thead><tr><th>Name</th><th>Type</th><th>Level</th><th>Cost to next</th><th>Cost to max</th><th></th></tr></thead>
+      <thead><tr><th>Name</th><th>Type</th><th>Level</th><th>Cost to next</th><th>Cost to max</th></tr></thead>
       <tbody>
         ${p.nodes
-          .map((n) => {
+          .map((n, idx) => {
             const next =
               n.level < MAX_LEVEL
                 ? costBetween(n.type, n.level, n.level + 1)
                 : { se: 0, frag: 0 };
             const toMax = costBetween(n.type, n.level, MAX_LEVEL);
             return `<tr>
-            <td><input type="text" data-action="renameNode" data-id="${n.id}" value="${n.name}" style="width:280px"></td>
-            <td>
-              <select data-action="typeNode" data-id="${n.id}">
-                ${Object.keys(TYPE_LABEL)
-                  .map(
-                    (t) =>
-                      `<option value="${t}" ${t === n.type ? "selected" : ""}>${TYPE_LABEL[t]}</option>`,
-                  )
-                  .join("")}
-              </select>
-            </td>
-            <td><input type="number" min="0" max="${MAX_LEVEL}" data-action="levelNode" data-id="${n.id}" value="${n.level}"></td>
+            <td>${n.name}</td>
+            <td>${TYPE_LABEL[n.type] || n.type}</td>
+            <td><input type="number" min="0" max="${MAX_LEVEL}" data-action="levelNode" data-id="${n.id}" data-idx="${idx}" value="${n.level}"></td>
             <td>${n.level < MAX_LEVEL ? `${next.se} SE / ${next.frag} Frag` : '<span class="lockbadge" style="background:var(--good);color:#111">MAX</span>'}</td>
             <td>${toMax.se} SE / ${toMax.frag} Frag</td>
-            <td><button class="small-btn danger" data-action="removeNode" data-id="${n.id}">✕</button></td>
           </tr>`;
           })
           .join("")}
       </tbody>
     </table>
-    <div style="margin-top:10px;"><button class="primary" id="addNodeBtn">+ Add Custom Node</button></div>
-    <div class="hint">Renaming a node only changes its display label here — it won't affect priority matching, which is keyed internally.</div>
+    <div class="hint">Node names, types, and the node list itself are all fixed — only your level input is editable.</div>
   </div>`;
 }
 
@@ -279,54 +295,6 @@ function renderSequenceTab(p) {
   </div>`;
 }
 
-function renderHexaStatsTab(p) {
-  const m = MAIN_STATS[Math.min(p.hexaMain, 10)];
-  const a = ADDITIONAL_STATS[Math.max(0, Math.min(p.hexaAdd, 10) - 1)] || {
-    crit: 0,
-    boss: 0,
-    ied: 0,
-    dmg: 0,
-    att: 0,
-    stat: 0,
-  };
-  return `
-  <div class="panel">
-    <h2>Calculator</h2>
-    <div class="grid">
-      <div>
-        <label class="hint">Main Stat level (0-10)</label><br>
-        <input type="number" id="hexaMainInput" min="0" max="10" value="${p.hexaMain}">
-        <div class="hint" style="margin-top:8px;">Crit Dmg ${m.crit}% · Boss Dmg ${m.boss}% · IED ${m.ied}% · Damage ${m.dmg}% · ATT ${m.att} · Stats ${m.stat}${m.cost != null ? ` · Upgrade cost ${m.cost} (${m.prob}% chance)` : ""}</div>
-      </div>
-      <div>
-        <label class="hint">Additional Stat level (0-10)</label><br>
-        <input type="number" id="hexaAddInput" min="0" max="10" value="${p.hexaAdd}">
-        <div class="hint" style="margin-top:8px;">Crit Dmg ${a.crit || 0}% · Boss Dmg ${a.boss || 0}% · IED ${a.ied || 0}% · Damage ${a.dmg || 0}% · ATT ${a.att || 0} · Stats ${a.stat || 0}</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <h2>Main Stats Reference (per tree)</h2>
-    <table>
-      <thead><tr><th>Lvl</th><th>Crit Dmg</th><th>Boss Dmg</th><th>IED</th><th>Damage</th><th>ATT</th><th>Stats</th><th>Prob</th><th>Cost</th></tr></thead>
-      <tbody>
-      ${MAIN_STATS.map((r) => `<tr><td>${r.lvl}</td><td>${r.crit}%</td><td>${r.boss}%</td><td>${r.ied}%</td><td>${r.dmg}%</td><td>${r.att}</td><td>${r.stat}</td><td>${r.prob != null ? r.prob + "%" : "-"}</td><td>${r.cost != null ? r.cost : "-"}</td></tr>`).join("")}
-      </tbody>
-    </table>
-  </div>
-
-  <div class="panel">
-    <h2>Additional Stats Reference (per slot)</h2>
-    <table>
-      <thead><tr><th>Lvl</th><th>Crit Dmg</th><th>Boss Dmg</th><th>IED</th><th>Damage</th><th>ATT</th><th>Stats</th></tr></thead>
-      <tbody>
-      ${ADDITIONAL_STATS.map((r) => `<tr><td>${r.lvl}</td><td>${r.crit}%</td><td>${r.boss}%</td><td>${r.ied}%</td><td>${r.dmg}%</td><td>${r.att}</td><td>${r.stat}</td></tr>`).join("")}
-      </tbody>
-    </table>
-  </div>`;
-}
-
 /* ================= EVENTS ================= */
 function attachEvents() {
   document.querySelectorAll("[data-tab]").forEach(
@@ -392,7 +360,13 @@ function attachEvents() {
   const exportBtn = document.getElementById("exportBtn");
   if (exportBtn)
     exportBtn.onclick = () => {
-      const blob = new Blob([JSON.stringify(state, null, 2)], {
+      const exportData = {
+        profiles: Object.values(state.profiles).map((prof) => ({
+          class: prof.classKey,
+          nodes: prof.nodes.map((n) => ({ key: n.key, level: n.level })),
+        })),
+      };
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
         type: "application/json",
       });
       const url = URL.createObjectURL(blob);
@@ -413,11 +387,24 @@ function attachEvents() {
       reader.onload = (ev) => {
         try {
           const data = JSON.parse(ev.target.result);
-          if (data.profiles && data.current) {
-            state = data;
-            saveState();
-            render();
-          } else alert("Invalid file format.");
+          if (!data.profiles || !Array.isArray(data.profiles)) {
+            alert("Invalid file format.");
+            return;
+          }
+          const newProfiles = {};
+          data.profiles.forEach((entry) => {
+            const name = entry.class;
+            if (!name) return;
+            newProfiles[name] = profileFromImportEntry(entry);
+          });
+          if (Object.keys(newProfiles).length === 0) {
+            alert("No valid profiles found in file.");
+            return;
+          }
+          state.profiles = newProfiles;
+          state.current = Object.keys(newProfiles)[0];
+          saveState();
+          render();
         } catch (err) {
           alert("Could not read file.");
         }
@@ -428,56 +415,39 @@ function attachEvents() {
   const p = curProfile();
 
   // Node tab events
-  document.querySelectorAll('[data-action="renameNode"]').forEach(
-    (el) =>
-      (el.onchange = (e) => {
-        const n = p.nodes.find((x) => x.id === e.target.dataset.id);
-        n.name = e.target.value;
-        saveState();
-      }),
-  );
-  document.querySelectorAll('[data-action="typeNode"]').forEach(
-    (el) =>
-      (el.onchange = (e) => {
-        const n = p.nodes.find((x) => x.id === e.target.dataset.id);
-        n.type = e.target.value;
-        saveState();
-        render();
-      }),
-  );
-  document.querySelectorAll('[data-action="levelNode"]').forEach(
-    (el) =>
-      (el.onchange = (e) => {
-        const n = p.nodes.find((x) => x.id === e.target.dataset.id);
-        let v = parseInt(e.target.value) || 0;
-        v = Math.max(0, Math.min(MAX_LEVEL, v));
-        n.level = v;
-        saveState();
-        render();
-      }),
-  );
-  document.querySelectorAll('[data-action="removeNode"]').forEach(
-    (el) =>
-      (el.onclick = (e) => {
-        const id = e.target.dataset.id;
-        p.nodes = p.nodes.filter((n) => n.id !== id);
-        saveState();
-        render();
-      }),
-  );
-  const addNodeBtn = document.getElementById("addNodeBtn");
-  if (addNodeBtn)
-    addNodeBtn.onclick = () => {
-      p.nodes.push({
-        id: uid(),
-        key: "custom-" + uid(),
-        name: "New Node",
-        type: "skill12",
-        level: 0,
-      });
-      saveState();
+  function commitLevelInput(inputEl) {
+    const n = p.nodes.find((x) => x.id === inputEl.dataset.id);
+    let v = parseInt(inputEl.value) || 0;
+    v = Math.max(0, Math.min(MAX_LEVEL, v));
+    n.level = v;
+    saveState();
+  }
+
+  function focusLevelInputByIdx(idx) {
+    const target = document.querySelector(
+      `[data-action="levelNode"][data-idx="${idx}"]`,
+    );
+    if (target) {
+      target.focus();
+      target.select();
+    }
+  }
+
+  document.querySelectorAll('[data-action="levelNode"]').forEach((el) => {
+    el.onchange = (e) => {
+      commitLevelInput(e.target);
       render();
     };
+    el.onkeydown = (e) => {
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const idx = parseInt(e.target.dataset.idx, 10);
+        commitLevelInput(e.target);
+        render();
+        focusLevelInputByIdx(e.shiftKey ? idx - 1 : idx + 1);
+      }
+    };
+  });
 
   // Sequence tab events
   const fragOwned = document.getElementById("fragOwned");
@@ -498,22 +468,6 @@ function attachEvents() {
   if (presetSelect)
     presetSelect.onchange = (e) => {
       p.presetName = e.target.value;
-      saveState();
-      render();
-    };
-
-  // Hexa stats tab
-  const hexaMainInput = document.getElementById("hexaMainInput");
-  if (hexaMainInput)
-    hexaMainInput.onchange = (e) => {
-      p.hexaMain = Math.max(0, Math.min(10, parseInt(e.target.value) || 0));
-      saveState();
-      render();
-    };
-  const hexaAddInput = document.getElementById("hexaAddInput");
-  if (hexaAddInput)
-    hexaAddInput.onchange = (e) => {
-      p.hexaAdd = Math.max(0, Math.min(10, parseInt(e.target.value) || 0));
       saveState();
       render();
     };

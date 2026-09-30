@@ -863,25 +863,25 @@ const PRIORITY_CONFIG = {
     nodes: [
       {
         key: "m1",
-        name: "Mastery Core 1 (Soul-Shatter Talisman: Dance & Heart-Wreck Talisman)",
+        name: "Soul-Shatter Talisman: Dance & Heart-Wreck Talisman",
         type: "mastery",
         level: 0,
       },
       {
         key: "m2",
-        name: "Mastery Core 2 (Summon Oni, [Order] Spinning Strike, & [Order] Pulverizing Strike)",
+        name: "Summon Oni, [Order] Spinning Strike, & [Order] Pulverizing Strike",
         type: "mastery",
         level: 0,
       },
       {
         key: "m3",
-        name: "Mastery Core 3 (Summon Tengu & Shade-Fletched Arrow)",
+        name: "Summon Tengu & Shade-Fletched Arrow",
         type: "mastery",
         level: 0,
       },
       {
         key: "m4",
-        name: "Mastery Core 4 (Summon Orochi & [Order] Execute)",
+        name: "Summon Orochi & [Order] Execute",
         type: "mastery",
         level: 0,
       },
