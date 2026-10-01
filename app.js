@@ -32,6 +32,60 @@ function buildNodesFromTemplate(classKey) {
   }));
 }
 
+const STAT_CORES = ["I", "II", "III"];
+const STAT_SLOTS = [
+  { key: "main", label: "Main", max: 10 },
+  { key: "second", label: "2nd", max: 10 },
+  { key: "third", label: "3rd", max: 10 },
+];
+
+function defaultStats() {
+  return STAT_CORES.map(() => ({
+    main: 0,
+    second: 0,
+    third: 0,
+    types: { main: "", second: "", third: "" },
+  }));
+}
+
+const STAT_CORE_TOTAL_MAX = 20;
+const STAT_OPTIONS = [
+  "Critical Damage",
+  "Boss Damage",
+  "Ignore Defense",
+  "Damage",
+  "Attack/M.Attack",
+  "Main Stat",
+];
+
+// Each slot caps at slot.max, and a core's three slots can total at most
+// STAT_CORE_TOTAL_MAX. `others` is the sum of the core's other two slots.
+function clampStat(slot, v, others = 0) {
+  const cap = Math.min(slot.max, STAT_CORE_TOTAL_MAX - others);
+  return Math.max(0, Math.min(cap, parseInt(v) || 0));
+}
+
+// Fill in / clamp stats on profiles saved before stats existed.
+function ensureStats(p) {
+  const old = Array.isArray(p.stats) ? p.stats : [];
+  p.stats = defaultStats().map((d, i) => {
+    let total = 0;
+    const used = new Set();
+    STAT_SLOTS.forEach((sl) => {
+      d[sl.key] = clampStat(sl, old[i] && old[i][sl.key], total);
+      total += d[sl.key];
+      // A stat can only be picked once per core
+      let t = old[i] && old[i].types && old[i].types[sl.key];
+      if (t === "Attack") t = "Attack/M.Attack"; // renamed option
+      if (STAT_OPTIONS.includes(t) && !used.has(t)) {
+        d.types[sl.key] = t;
+        used.add(t);
+      }
+    });
+    return d;
+  });
+}
+
 function defaultProfile(classKey) {
   const presetNames =
     classKey && PRIORITY_CONFIG[classKey]
@@ -41,6 +95,7 @@ function defaultProfile(classKey) {
     classKey: classKey || null,
     nodes: classKey ? buildNodesFromTemplate(classKey) : [],
     presetName: presetNames[0] || null,
+    stats: defaultStats(),
     fragOwned: 0,
     fragPerDay: 0,
   };
@@ -57,6 +112,7 @@ function defaultState() {
 // Saved nodes keep a copy of their display name; resync them with the template.
 function syncNodeNames(st) {
   Object.values(st.profiles || {}).forEach((p) => {
+    ensureStats(p);
     const tpl = p.classKey && PRIORITY_CONFIG[p.classKey];
     if (!tpl) return;
     const nameByKey = {};
@@ -105,6 +161,8 @@ function profileFromImportEntry(entry) {
     );
     return profile;
   }
+  profile.stats = entry.stats;
+  ensureStats(profile);
   const levelByKey = {};
   (entry.nodes || []).forEach((n) => {
     levelByKey[n.key] = n.level;
@@ -172,8 +230,8 @@ function renderTopbar() {
 
 const NODE_SECTIONS = [
   { title: "Origin / Ascent", types: ["skill12", "skill3"] },
-  { title: "Mastery", types: ["mastery"] },
-  { title: "Boost", types: ["boost"] },
+  { title: "Masteries", types: ["mastery"] },
+  { title: "Enhancements", types: ["boost"] },
   { title: "Common", types: ["common12", "common3"] },
 ];
 
@@ -204,6 +262,38 @@ function renderNodeSection(p, sec) {
       </thead>
       <tbody>${rows || '<tr><td colspan="6" class="hint">None</td></tr>'}</tbody>
     </table>
+  </div>`;
+}
+
+function renderStatsSection(p) {
+  return `<div class="panel">
+    <h2 class="section-title">HEXA Stats</h2>
+    <div class="stat-cores">
+      ${STAT_CORES.map(
+        (core, ci) => `<div class="panel">
+        <h2>${core}</h2>
+        <table>
+          <tbody>
+            ${STAT_SLOTS.map(
+              (sl) => `<tr>
+              <td class="stat-label">${sl.label}</td>
+              <td><select data-action="typeStat" data-core="${ci}" data-slot="${sl.key}">
+                <option value="">—</option>
+                ${STAT_OPTIONS.map((o) => {
+                  const taken = STAT_SLOTS.some(
+                    (x) => x.key !== sl.key && p.stats[ci].types[x.key] === o,
+                  );
+                  return `<option value="${o}" ${p.stats[ci].types[sl.key] === o ? "selected" : ""} ${taken ? "disabled" : ""}>${o}</option>`;
+                }).join("")}
+              </select></td>
+              <td><input type="number" min="0" max="${sl.max}" data-action="levelStat" data-core="${ci}" data-slot="${sl.key}" value="${p.stats[ci][sl.key]}"></td>
+            </tr>`,
+            ).join("")}
+          </tbody>
+        </table>
+      </div>`,
+      ).join("")}
+    </div>
   </div>`;
 }
 
@@ -244,9 +334,14 @@ function renderNodesTab(p) {
     <div class="hint">${pct.toFixed(2)}% complete</div>
   </div>
 
-  <div class="node-sections">
-    ${NODE_SECTIONS.map((sec) => renderNodeSection(p, sec)).join("")}
+  <div class="panel">
+    <h2 class="section-title">HEXA Skills</h2>
+    <div class="node-sections">
+      ${NODE_SECTIONS.map((sec) => renderNodeSection(p, sec)).join("")}
+    </div>
   </div>
+
+  ${renderStatsSection(p)}
 `;
 }
 
@@ -493,6 +588,7 @@ function attachEvents() {
         profiles: Object.values(state.profiles).map((prof) => ({
           class: prof.classKey,
           nodes: prof.nodes.map((n) => ({ key: n.key, level: n.level })),
+          stats: prof.stats,
         })),
       };
       const blob = new Blob([JSON.stringify(exportData, null, 2)], {
@@ -575,6 +671,30 @@ function attachEvents() {
         render();
         focusLevelInputByIdx(e.shiftKey ? idx - 1 : idx + 1);
       }
+    };
+  });
+
+  document.querySelectorAll('[data-action="typeStat"]').forEach((el) => {
+    el.onchange = (e) => {
+      p.stats[e.target.dataset.core].types[e.target.dataset.slot] =
+        e.target.value;
+      saveState();
+      render();
+    };
+  });
+
+  document.querySelectorAll('[data-action="levelStat"]').forEach((el) => {
+    el.onchange = (e) => {
+      const slot = STAT_SLOTS.find((sl) => sl.key === e.target.dataset.slot);
+      const core = p.stats[e.target.dataset.core];
+      const others = STAT_SLOTS.reduce(
+        (sum, sl) => (sl === slot ? sum : sum + core[sl.key]),
+        0,
+      );
+      const v = clampStat(slot, e.target.value, others);
+      core[slot.key] = v;
+      e.target.value = v;
+      saveState();
     };
   });
 

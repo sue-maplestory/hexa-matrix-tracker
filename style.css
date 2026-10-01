@@ -326,3 +326,36 @@ select {
   margin-top: 8px;
   color: var(--muted);
 }
+.panel .panel {
+  background: var(--panel2);
+}
+.stat-cores {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.stat-cores .panel {
+  margin-bottom: 0;
+  min-width: 0;
+}
+.stat-cores .panel h2 {
+  text-align: center;
+}
+.stat-cores td {
+  border-bottom: none;
+}
+.stat-cores td:not(.stat-label) {
+  text-align: right;
+}
+@media (max-width: 800px) {
+  .stat-cores {
+    grid-template-columns: 1fr;
+  }
+}
+.panel h2.section-title {
+  text-align: center;
+}
+.stat-cores select {
+  width: 100%;
+  min-width: 0;
+}
