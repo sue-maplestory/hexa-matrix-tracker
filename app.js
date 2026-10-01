@@ -13,6 +13,23 @@ function slug(s) {
 }
 
 // Icons live at icons/<class>/<node key>.png; missing ones just hide.
+const THEME_KEY = "hexaMatrixTrackerTheme";
+const THEMES = [
+  ["dark", "Dark Mode (Dark)"],
+  ["light", "Light Mode (Light)"],
+  ["mocha", "Mocha (Dark)"],
+  ["evergreen", "Evergreen (Dark)"],
+  ["milk-tea", "Milk Tea (Light)"],
+  ["matcha", "Matcha (Light)"],
+  ["nightshade", "Nightshade (Dark)"],
+  ["lavender", "Lavender (Light)"],
+  ["midnight-blue", "Midnight Blue (Dark)"],
+  ["cloud", "Cloud (Light)"],
+];
+let theme = localStorage.getItem(THEME_KEY);
+if (!THEMES.some(([id]) => id === theme)) theme = "dark";
+document.documentElement.dataset.theme = theme;
+
 const fmt = (n) => n.toLocaleString("en-US");
 
 function nodeIcon(classKey, key) {
@@ -223,8 +240,16 @@ function renderTopbar() {
     <button id="renameProfileBtn">Rename</button>
     <button class="danger" id="deleteProfileBtn">Delete</button>
     <span style="flex:1"></span>
-    <button id="exportBtn">Export JSON</button>
-    <button id="importBtn">Import JSON</button>
+    <label style="color:var(--muted);font-size:12px;">Theme:</label>
+    <select id="themeSelect">
+      ${THEMES.map(([id, label]) => `<option value="${id}" ${id === theme ? "selected" : ""}>${label}</option>`).join("")}
+    </select>
+    <button id="exportBtn" class="icon-btn" data-fullname="Save backup (Export JSON)" aria-label="Export JSON">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+    </button>
+    <button id="importBtn" class="icon-btn" data-fullname="Load backup (Import JSON)" aria-label="Import JSON">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><path d="M12 17v-6"/><path d="m9 14 3-3 3 3"/></svg>
+    </button>
   </div>`;
 }
 
@@ -248,8 +273,11 @@ function renderNodeSection(p, sec) {
       return `<tr>
             <td class="node-name" data-fullname="${n.name}">${nodeIcon(p.classKey, n.key)}${n.name}</td>
             <td><input type="number" min="0" max="${MAX_LEVEL}" data-action="levelNode" data-id="${n.id}" data-idx="${idx}" value="${n.level}"></td>
-            ${n.level < MAX_LEVEL ? `<td>${fmt(next.se)}</td><td>${fmt(next.frag)}</td>` : '<td colspan="2"><span class="lockbadge" style="background:var(--good);color:#111">MAX</span></td>'}
-            <td>${fmt(toMax.se)}</td><td>${fmt(toMax.frag)}</td>
+            ${
+              n.level < MAX_LEVEL
+                ? `<td>${fmt(next.se)}</td><td>${fmt(next.frag)}</td><td>${fmt(toMax.se)}</td><td>${fmt(toMax.frag)}</td>`
+                : '<td colspan="4">MAX</td>'
+            }
           </tr>`;
     })
     .join("");
@@ -541,6 +569,14 @@ function attachEvents() {
       }
     };
   }
+
+  const themeSelect = document.getElementById("themeSelect");
+  if (themeSelect)
+    themeSelect.onchange = (e) => {
+      theme = e.target.value;
+      localStorage.setItem(THEME_KEY, theme);
+      document.documentElement.dataset.theme = theme;
+    };
 
   const newBtn = document.getElementById("newProfileBtn");
   if (newBtn)
