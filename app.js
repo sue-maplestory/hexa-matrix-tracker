@@ -30,6 +30,13 @@ let theme = localStorage.getItem(THEME_KEY);
 if (!THEMES.some(([id]) => id === theme)) theme = "dark";
 document.documentElement.dataset.theme = theme;
 
+function escapeHtml(s) {
+  return String(s).replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+  );
+}
+
 const fmt = (n) => n.toLocaleString("en-US");
 
 function nodeIcon(classKey, key) {
@@ -136,11 +143,10 @@ function defaultProfile(classKey) {
 }
 
 function defaultState() {
-  const profiles = {};
-  Object.keys(PRIORITY_CONFIG).forEach((classKey) => {
-    profiles[classKey] = defaultProfile(classKey);
-  });
-  return { profiles, current: "Kanna" };
+  const classKey = PRIORITY_CONFIG["Kanna"]
+    ? "Kanna"
+    : Object.keys(PRIORITY_CONFIG)[0];
+  return { profiles: { [classKey]: defaultProfile(classKey) }, current: classKey };
 }
 
 // Saved nodes keep a copy of their display name; resync them with the template.
@@ -173,6 +179,12 @@ function loadState() {
           n.level = Math.max(minLevel(p, n), n.level);
         }),
       );
+      if (!saved.profiles || !Object.keys(saved.profiles).length) {
+        return defaultState();
+      }
+      if (!saved.profiles[saved.current]) {
+        saved.current = Object.keys(saved.profiles)[0];
+      }
       return saved;
     } catch (e) {}
   }
@@ -185,6 +197,7 @@ function saveState() {
 
 let state = loadState();
 let activeTab = "nodes";
+let editingChar = null; // name of the character being renamed inline
 
 function curProfile() {
   return state.profiles[state.current];
@@ -222,12 +235,13 @@ function render() {
   const p = curProfile();
   const app = document.getElementById("app");
   app.innerHTML = `
+    <div class="page-header">
     <h1>HEXA Matrix Tracker
       <span class="help" tabindex="0" aria-label="How to use this tool">?
         <span class="help-tip">
           <strong>How to use</strong>
           <ul>
-            <li>Pick your class from the <em>Class</em> box (click it and type a few letters). Use <em>+ New Profile</em> to track more characters.</li>
+            <li>Use <em>+ New Character</em> to add characters, then click between them at the top.</li>
             <li><em>HEXA Tracker</em>: Enter the current level of each HEXA skill. Costs to the next level and to max update automatically.</li>
             <li><em>Upgrade Priority</em>: Follows a recommended leveling order. Enter your fragments owned and gained per day to estimate how long each step takes.</li>
             <li><em>Next Upgrade</em> shows the next step in the priority order you haven't completed yet.</li>
@@ -237,6 +251,8 @@ function render() {
         </span>
       </span>
     </h1>
+    ${renderHeaderControls()}
+    </div>
     ${renderTopbar()}
     <div class="tabs">
       <button data-tab="nodes" class="${activeTab === "nodes" ? "active" : ""}">HEXA Tracker</button>
@@ -250,18 +266,22 @@ function render() {
 }
 
 function renderTopbar() {
-  const names = Object.keys(state.profiles).sort((a, b) => a.localeCompare(b));
+  const tabs = Object.keys(state.profiles)
+    .map((n) => {
+      const active = n === state.current;
+      const label =
+        active && editingChar === n
+          ? `<input class="char-edit" value="${escapeHtml(n)}" maxlength="30" />`
+          : `<span class="char-name" ${active ? 'title="Click to rename"' : ""}>${escapeHtml(n)}</span>`;
+      return `<div class="char-tab ${active ? "active" : ""}" data-char="${encodeURIComponent(n)}" role="button" tabindex="0">${label}<span class="char-class">${escapeHtml(state.profiles[n].classKey || "")}</span><button class="char-del" data-del="${encodeURIComponent(n)}" aria-label="Delete ${escapeHtml(n)}" title="Delete">×</button></div>`;
+    })
+    .join("");
   return `
-  <div class="topbar">
-    <label style="color:var(--muted);font-size:12px;">Class:</label>
-    <input id="profileSelect" list="profileList" value="${state.current}" placeholder="Type to search" autocomplete="off" />
-    <datalist id="profileList">
-      ${names.map((n) => `<option value="${n}"></option>`).join("")}
-    </datalist>
-    <button id="newProfileBtn">+ New Profile</button>
-    <button id="renameProfileBtn">Rename</button>
-    <button class="danger" id="deleteProfileBtn">Delete</button>
-    <span style="flex:1"></span>
+  <div class="char-tabs">${tabs}<button id="newProfileBtn">+ New Character</button></div>`;
+}
+
+function renderHeaderControls() {
+  return `<div class="header-controls">
     <label style="color:var(--muted);font-size:12px;">Theme:</label>
     <select id="themeSelect">
       ${THEMES.map(([id, label]) => `<option value="${id}" ${id === theme ? "selected" : ""}>${label}</option>`).join("")}
@@ -539,9 +559,9 @@ function renderSequenceTab(p) {
 }
 
 /* ================= EVENTS ================= */
-/* Dialog with a dropdown of class templates. Resolves to the chosen class
-   key, null for "None", or undefined if cancelled. */
-function pickClassTemplate() {
+/* Dialog asking for a character name and class. Resolves to
+   { name, classKey }, or undefined if cancelled. */
+function pickNewCharacter() {
   return new Promise((resolve) => {
     const classNames = Object.keys(PRIORITY_CONFIG).sort((a, b) =>
       a.localeCompare(b),
@@ -551,35 +571,44 @@ function pickClassTemplate() {
       "background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:16px;";
     dlg.innerHTML = `
       <form method="dialog">
-        <label>Base this on which class template?<br /><br />
-          <input id="classTemplateInput" list="classTemplateList" placeholder="Type to search (blank = None)" autocomplete="off" />
-          <datalist id="classTemplateList">
-            ${classNames.map((n) => `<option value="${n}"></option>`).join("")}
-          </datalist>
+        <label>Character name<br />
+          <input id="charName" placeholder="Name" autocomplete="off" required />
+        </label>
+        <br /><br />
+        <label>Class<br />
+          <select id="charClass" required>
+            <option value="" disabled selected>Select a class</option>
+            ${classNames.map((n) => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("")}
+          </select>
         </label>
         <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
           <button value="cancel" formnovalidate>Cancel</button>
-          <button value="ok">OK</button>
+          <button value="ok">Add</button>
         </div>
       </form>`;
-    const input = dlg.querySelector("input");
-    const matchClass = () => {
-      const t = input.value.trim().toLowerCase();
-      return classNames.find((n) => n.toLowerCase() === t) || null;
-    };
-    input.addEventListener("input", () => {
-      input.setCustomValidity(
-        input.value.trim() && !matchClass() ? "Pick a class from the list" : "",
+    const nameInput = dlg.querySelector("#charName");
+    const classSelect = dlg.querySelector("#charClass");
+    nameInput.addEventListener("input", () => {
+      const n = nameInput.value.trim();
+      nameInput.setCustomValidity(
+        state.profiles[n] ? "A character with that name already exists" : "",
       );
+    });
+    classSelect.addEventListener("change", () => {
+      if (!nameInput.value.trim()) {
+        nameInput.value = classSelect.value;
+        nameInput.dispatchEvent(new Event("input"));
+      }
     });
     dlg.addEventListener("close", () => {
       const ok = dlg.returnValue === "ok";
-      const val = matchClass();
+      const result = { name: nameInput.value.trim(), classKey: classSelect.value };
       dlg.remove();
-      resolve(ok ? val || null : undefined);
+      resolve(ok && result.name && result.classKey ? result : undefined);
     });
     document.body.appendChild(dlg);
     dlg.showModal();
+    nameInput.focus();
   });
 }
 
@@ -592,25 +621,72 @@ function attachEvents() {
       }),
   );
 
-  const profileSelect = document.getElementById("profileSelect");
-  if (profileSelect) {
-    const matchProfile = () => {
-      const t = profileSelect.value.trim().toLowerCase();
-      return Object.keys(state.profiles).find((n) => n.toLowerCase() === t);
-    };
-    // Clear on focus so the full list shows; restore if nothing valid is chosen
-    profileSelect.onfocus = () => (profileSelect.value = "");
-    profileSelect.onblur = () => {
-      if (!matchProfile()) profileSelect.value = state.current;
-    };
-    profileSelect.oninput = () => {
-      const match = matchProfile();
-      if (match && match !== state.current) {
-        state.current = match;
-        saveState();
-        render();
+  document.querySelectorAll("[data-char]").forEach((tab) => {
+    const name = decodeURIComponent(tab.dataset.char);
+    tab.onclick = (e) => {
+      if (e.target.closest(".char-del") || e.target.closest(".char-edit")) return;
+      if (name === state.current) {
+        if (e.target.closest(".char-name")) {
+          editingChar = name;
+          render();
+        }
+        return;
       }
+      state.current = name;
+      saveState();
+      render();
     };
+  });
+
+  document.querySelectorAll("[data-del]").forEach((b) => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      const name = decodeURIComponent(b.dataset.del);
+      if (Object.keys(state.profiles).length <= 1) {
+        alert("Can't delete the only character.");
+        return;
+      }
+      if (!confirm(`Delete character "${name}"?`)) return;
+      delete state.profiles[name];
+      if (state.current === name) state.current = Object.keys(state.profiles)[0];
+      editingChar = null;
+      saveState();
+      render();
+    };
+  });
+
+  const editInput = document.querySelector(".char-edit");
+  if (editInput) {
+    let done = false;
+    const finish = (commit) => {
+      if (done) return;
+      done = true;
+      const old = editingChar;
+      const name = editInput.value.trim();
+      editingChar = null;
+      if (commit && name && name !== old) {
+        if (state.profiles[name]) {
+          alert("A character with that name already exists.");
+        } else {
+          // Rebuild so the renamed character keeps its position
+          const renamed = {};
+          Object.keys(state.profiles).forEach((k) => {
+            renamed[k === old ? name : k] = state.profiles[k];
+          });
+          state.profiles = renamed;
+          state.current = name;
+          saveState();
+        }
+      }
+      render();
+    };
+    editInput.onkeydown = (e) => {
+      if (e.key === "Enter") finish(true);
+      else if (e.key === "Escape") finish(false);
+    };
+    editInput.onblur = () => finish(true);
+    editInput.focus();
+    editInput.select();
   }
 
   const themeSelect = document.getElementById("themeSelect");
@@ -624,47 +700,20 @@ function attachEvents() {
   const newBtn = document.getElementById("newProfileBtn");
   if (newBtn)
     newBtn.onclick = async () => {
-      const name = prompt("New profile name:");
-      if (!name || state.profiles[name]) return;
-      const classKey = await pickClassTemplate();
-      if (classKey === undefined) return;
+      const picked = await pickNewCharacter();
+      if (!picked || state.profiles[picked.name]) return;
+      const { name, classKey } = picked;
       state.profiles[name] = defaultProfile(classKey);
       state.current = name;
       saveState();
       render();
     };
-  const renameBtn = document.getElementById("renameProfileBtn");
-  if (renameBtn)
-    renameBtn.onclick = () => {
-      const name = prompt("Rename class to:", state.current);
-      if (name && name !== state.current && !state.profiles[name]) {
-        state.profiles[name] = state.profiles[state.current];
-        delete state.profiles[state.current];
-        state.current = name;
-        saveState();
-        render();
-      }
-    };
-  const delBtn = document.getElementById("deleteProfileBtn");
-  if (delBtn)
-    delBtn.onclick = () => {
-      if (Object.keys(state.profiles).length <= 1) {
-        alert("Can't delete the only profile.");
-        return;
-      }
-      if (confirm(`Delete profile "${state.current}"?`)) {
-        delete state.profiles[state.current];
-        state.current = Object.keys(state.profiles)[0];
-        saveState();
-        render();
-      }
-    };
-
   const exportBtn = document.getElementById("exportBtn");
   if (exportBtn)
     exportBtn.onclick = () => {
       const exportData = {
         profiles: Object.values(state.profiles).map((prof) => ({
+          name: Object.keys(state.profiles).find((k) => state.profiles[k] === prof),
           class: prof.classKey,
           nodes: prof.nodes.map((n) => ({ key: n.key, level: n.level })),
           stats: prof.stats,
@@ -697,8 +746,8 @@ function attachEvents() {
           }
           const newProfiles = {};
           data.profiles.forEach((entry) => {
-            const name = entry.class;
-            if (!name) return;
+            const name = entry.name || entry.class;
+            if (!name || !entry.class) return;
             newProfiles[name] = profileFromImportEntry(entry);
           });
           if (Object.keys(newProfiles).length === 0) {

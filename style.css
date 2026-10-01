@@ -157,19 +157,24 @@ h1 {
   font-size: 22px;
   margin: 0 0 16px;
 }
-.topbar {
+.page-header {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
   align-items: center;
-  background: var(--panel);
-  padding: 12px;
-  border-radius: 10px;
+  justify-content: space-between;
+  gap: 10px;
   margin-bottom: 16px;
 }
-.topbar select,
-.topbar input,
-.topbar button {
+.page-header h1 {
+  margin: 0;
+}
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.header-controls select,
+.header-controls button {
   background: var(--panel2);
   color: var(--text);
   border: 1px solid var(--border);
@@ -192,21 +197,29 @@ button.danger {
 }
 .tabs {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
 }
 .tabs button {
-  background: var(--panel2);
+  background: transparent;
   color: var(--muted);
-  border: 1px solid var(--border);
-  padding: 8px 16px;
-  border-radius: 8px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  padding: 10px 18px;
+  border-radius: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.tabs button:hover {
+  color: var(--text);
 }
 .tabs button.active {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
+  background: transparent;
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 .panel {
   background: var(--panel);
@@ -485,4 +498,64 @@ select {
   align-items: center;
   justify-content: center;
   padding: 5px 8px;
+}
+
+.char-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.char-tabs > button {
+  background: var(--panel2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.char-tab {
+  position: relative;
+  background: var(--panel2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 6px 26px 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.char-tab.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.char-tab.active .char-name {
+  cursor: text;
+}
+.char-tab .char-class {
+  font-size: 11px;
+  opacity: 0.75;
+  margin-left: 6px;
+}
+.char-tab .char-del {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  line-height: 14px;
+  opacity: 0.6;
+  cursor: pointer;
+}
+.char-tab .char-del:hover {
+  opacity: 1;
+  color: var(--danger, #ff6b6b);
+}
+.char-tab .char-edit {
+  width: 110px;
+  padding: 2px 4px;
 }
