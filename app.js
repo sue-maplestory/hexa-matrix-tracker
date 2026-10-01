@@ -10,6 +10,8 @@ function slug(s) {
 }
 
 // Icons live at icons/<class>/<node key>.png; missing ones just hide.
+const fmt = (n) => n.toLocaleString("en-US");
+
 function nodeIcon(classKey, key) {
   if (!classKey) return "";
   return `<img class="node-icon" src="icons/${slug(classKey)}/${slug(key)}.png" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
@@ -120,7 +122,20 @@ function render() {
   const p = curProfile();
   const app = document.getElementById("app");
   app.innerHTML = `
-    <h1>HEXA Matrix Tracker</h1>
+    <h1>HEXA Matrix Tracker
+      <span class="help" tabindex="0" aria-label="How to use this tool">?
+        <span class="help-tip">
+          <strong>How to use</strong>
+          <ul>
+            <li>Pick your class from the <em>Class</em> box (click it and type a few letters). Use <em>+ New Profile</em> to track more characters.</li>
+            <li><em>Node Tracker</em>: enter the current level of each HEXA skill. Costs to the next level and to max update automatically.</li>
+            <li><em>Upgrade Priority</em>: follows a recommended leveling order. Enter your fragments owned and gained per day to estimate how long each step takes.</li>
+            <li><em>Next Upgrade</em> shows the next step in the priority order you haven't completed yet.</li>
+            <li>Progress saves automatically in this browser. Use <em>Export JSON</em> / <em>Import JSON</em> to back up or move it.</li>
+          </ul>
+        </span>
+      </span>
+    </h1>
     <div class="subtitle">Costs verified against source data. Leveling priority order is locked to a fixed configuration</div>
     ${renderTopbar()}
     <div class="tabs">
@@ -172,16 +187,19 @@ function renderNodeSection(p, sec) {
       return `<tr>
             <td class="node-name" data-fullname="${n.name}">${nodeIcon(p.classKey, n.key)}${n.name}</td>
             <td><input type="number" min="0" max="${MAX_LEVEL}" data-action="levelNode" data-id="${n.id}" data-idx="${idx}" value="${n.level}"></td>
-            <td>${n.level < MAX_LEVEL ? `${next.se} Erdas / ${next.frag} Frags` : '<span class="lockbadge" style="background:var(--good);color:#111">MAX</span>'}</td>
-            <td>${toMax.se} Erdas / ${toMax.frag} Frags</td>
+            ${n.level < MAX_LEVEL ? `<td>${fmt(next.se)}</td><td>${fmt(next.frag)}</td>` : '<td colspan="2"><span class="lockbadge" style="background:var(--good);color:#111">MAX</span></td>'}
+            <td>${fmt(toMax.se)}</td><td>${fmt(toMax.frag)}</td>
           </tr>`;
     })
     .join("");
   return `<div class="panel">
     <h2>${sec.title}</h2>
     <table>
-      <thead><tr><th class="node-name">Name</th><th>Level</th><th>Cost to next</th><th>Cost to max</th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="4" class="hint">None</td></tr>'}</tbody>
+      <thead>
+        <tr><th class="node-name" rowspan="2">Name</th><th rowspan="2">Level</th><th colspan="2">Cost to next</th><th colspan="2">Cost to max</th></tr>
+        <tr><th>Erda</th><th>Frags</th><th>Erda</th><th>Frags</th></tr>
+      </thead>
+      <tbody>${rows || '<tr><td colspan="6" class="hint">None</td></tr>'}</tbody>
     </table>
   </div>`;
 }
@@ -203,12 +221,21 @@ function renderNodesTab(p) {
   );
   const pct = totalToMax.frag ? (spent.frag / totalToMax.frag) * 100 : 0;
 
+  const cfg = p.classKey ? PRIORITY_CONFIG[p.classKey] : null;
+  const presetNames = cfg ? Object.keys(cfg.priorities) : [];
+  const nextStep =
+    presetNames.length > 0
+      ? simulateSequence(p, cfg, presetNames).nextStep
+      : null;
+
   return `
+  ${nextStep ? renderNextUpgrade(p, nextStep) : ""}
+
   <div class="panel">
     <h2>Summary</h2>
     <div class="grid">
-      <div class="stat-card"><div class="label">Total to fully max all nodes</div><div class="value">${totalToMax.se} Sol Erdas / ${totalToMax.frag} Fragments</div></div>
-      <div class="stat-card"><div class="label">Spent so far (based on current levels)</div><div class="value">${spent.se} Sol Erdas / ${spent.frag} Fragments</div></div>
+      <div class="stat-card"><div class="label">Total to fully max all nodes</div><div class="value">${fmt(totalToMax.se)} Sol Erdas / ${fmt(totalToMax.frag)} Fragments</div></div>
+      <div class="stat-card"><div class="label">Spent so far (based on current levels)</div><div class="value">${fmt(spent.se)} Sol Erdas / ${fmt(spent.frag)} Fragments</div></div>
     </div>
     <div class="progress-bar"><div class="progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
     <div class="hint">${pct.toFixed(2)}% complete</div>
@@ -220,17 +247,7 @@ function renderNodesTab(p) {
   <div class="hint">Skill names, types, and costs are all fixed.</div>`;
 }
 
-function renderSequenceTab(p) {
-  const cfg = p.classKey ? PRIORITY_CONFIG[p.classKey] : null;
-  const presetNames = cfg ? Object.keys(cfg.priorities) : [];
-
-  if (!cfg || presetNames.length === 0) {
-    return `<div class="panel">
-      <h2>Upgrade Priority</h2>
-      <div class="hint">No built-in priority order is configured for this class yet.</div>
-    </div>`;
-  }
-
+function simulateSequence(p, cfg, presetNames) {
   const seq = cfg.priorities[p.presetName] || cfg.priorities[presetNames[0]];
   const nodesByKey = {};
   p.nodes.forEach((n) => (nodesByKey[n.key] = n));
@@ -275,16 +292,33 @@ function renderSequenceTab(p) {
     p.fragPerDay > 0
       ? Math.max(0, runningFrag - p.fragOwned) / p.fragPerDay
       : null;
+  return { rows, nextStep, runningSE, runningFrag, totalDays };
+}
 
+function renderNextUpgrade(p, nextStep) {
   return `
   <div class="panel">
-    <h2>Fragments</h2>
-    <div class="grid">
-      <div><label class="hint">Fragments owned</label><br><input type="number" id="fragOwned" value="${p.fragOwned}"></div>
-      <div><label class="hint">Fragments obtained per day</label><br><input type="number" id="fragPerDay" value="${p.fragPerDay}"></div>
-    </div>
-  </div>
+    <h2>Next Upgrade</h2>
+    <div class="value" style="font-size:16px;">${nodeIcon(p.classKey, nextStep.node.key)}${nextStep.node.name}: level ${nextStep.node.level} → ${nextStep.target}</div>
+    <div class="hint">${fmt(nextStep.cost.se)} Sol Erdas / ${fmt(nextStep.cost.frag)} Fragments needed for this step ${nextStep.daysFromStart != null ? `(~${nextStep.daysFromStart.toFixed(1)} days at current rate)` : ""}</div>
+  </div>`;
+}
 
+function renderSequenceTab(p) {
+  const cfg = p.classKey ? PRIORITY_CONFIG[p.classKey] : null;
+  const presetNames = cfg ? Object.keys(cfg.priorities) : [];
+
+  if (!cfg || presetNames.length === 0) {
+    return `<div class="panel">
+      <h2>Upgrade Priority</h2>
+      <div class="hint">No built-in priority order is configured for this class yet.</div>
+    </div>`;
+  }
+
+  const { rows, nextStep, runningSE, runningFrag, totalDays } =
+    simulateSequence(p, cfg, presetNames);
+
+  return `
   ${
     presetNames.length > 1
       ? `
@@ -298,16 +332,7 @@ function renderSequenceTab(p) {
       : ""
   }
 
-  ${
-    nextStep
-      ? `
-  <div class="panel">
-    <h2>Next Upgrade</h2>
-    <div class="value" style="font-size:16px;">${nodeIcon(p.classKey, nextStep.node.key)}${nextStep.node.name}: level ${nextStep.node.level} → ${nextStep.target}</div>
-    <div class="hint">${nextStep.cost.se} Sol Erdas / ${nextStep.cost.frag} Fragments needed for this step ${nextStep.daysFromStart != null ? `(~${nextStep.daysFromStart.toFixed(1)} days at current rate)` : ""}</div>
-  </div>`
-      : ""
-  }
+  ${nextStep ? renderNextUpgrade(p, nextStep) : ""}
 
   <div class="panel">
     <h2>Priority Order — ${p.presetName}</h2>
@@ -319,7 +344,7 @@ function renderSequenceTab(p) {
         return `<div class="step-row ${r.done ? "done" : ""}">
         <span class="step-num">${i + 1}</span>
         <span class="step-info">${nodeIcon(p.classKey, r.node.key)}${r.node.name} → level ${r.target}
-          <span class="hint">(${r.cost.se} SE / ${r.cost.frag} Frag · running total: ${r.runningSE} SE / ${r.runningFrag} Frag${r.daysFromStart != null ? ` · ~${r.daysFromStart.toFixed(1)} days` : ""})</span>
+          <span class="hint">(${fmt(r.cost.se)} SE / ${fmt(r.cost.frag)} Frag · running total: ${fmt(r.runningSE)} SE / ${fmt(r.runningFrag)} Frag${r.daysFromStart != null ? ` · ~${r.daysFromStart.toFixed(1)} days` : ""})</span>
         </span>
       </div>`;
       })
@@ -327,9 +352,17 @@ function renderSequenceTab(p) {
   </div>
 
   <div class="panel">
+    <h2>Fragments</h2>
+    <div class="grid">
+      <div><label class="hint">Fragments owned</label><br><input type="number" id="fragOwned" value="${p.fragOwned}"></div>
+      <div><label class="hint">Fragments obtained per day</label><br><input type="number" id="fragPerDay" value="${p.fragPerDay}"></div>
+    </div>
+  </div>
+
+  <div class="panel">
     <h2>Totals</h2>
     <div class="grid">
-      <div class="stat-card"><div class="label">Total remaining in this order</div><div class="value">${runningSE} SE / ${runningFrag} Frag</div></div>
+      <div class="stat-card"><div class="label">Total remaining in this order</div><div class="value">${fmt(runningSE)} SE / ${fmt(runningFrag)} Frag</div></div>
       <div class="stat-card"><div class="label">Est. days to complete</div><div class="value">${totalDays != null ? totalDays.toFixed(1) + " days" : "set fragments/day"}</div></div>
     </div>
   </div>`;

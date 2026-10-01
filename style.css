@@ -234,7 +234,7 @@ select {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  align-items: start;
+  grid-auto-rows: 1fr;
 }
 .node-sections .panel {
   margin-bottom: 0;
@@ -270,4 +270,60 @@ select {
   border-radius: 6px;
   font-size: 12px;
   pointer-events: none;
+}
+.node-sections th:not(.node-name),
+.node-sections td:not(.node-name) {
+  text-align: center;
+}
+.help {
+  position: relative;
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin-left: 8px;
+  border: 1px solid var(--muted);
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+  vertical-align: middle;
+  cursor: help;
+}
+.help:hover,
+.help:focus {
+  color: var(--text);
+  border-color: var(--text);
+  outline: none;
+}
+.help-tip {
+  display: none;
+  position: absolute;
+  top: 26px;
+  left: 0;
+  z-index: 1000;
+  width: 340px;
+  max-width: 85vw;
+  padding: 10px 12px;
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  cursor: default;
+}
+.help-tip ul {
+  margin: 6px 0 0;
+  padding-left: 16px;
+}
+.help-tip li {
+  margin-bottom: 4px;
+}
+.help:hover .help-tip,
+.help:focus .help-tip {
+  display: block;
 }
