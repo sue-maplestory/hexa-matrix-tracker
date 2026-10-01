@@ -37,6 +37,11 @@ function escapeHtml(s) {
   );
 }
 
+const ERDA_ICON = `<img class="cur-icon" src="icons/erda.png" alt="Sol Erda" title="Sol Erda">`;
+const FRAG_ICON = `<img class="cur-icon" src="icons/fragments.png" alt="Fragments" title="Fragments">`;
+const costText = (se, frag) =>
+  `${fmt(se)} ${ERDA_ICON} / ${fmt(frag)} ${FRAG_ICON}`;
+
 const fmt = (n) => n.toLocaleString("en-US");
 
 function nodeIcon(classKey, key) {
@@ -328,7 +333,7 @@ function renderNodeSection(p, sec) {
     <table>
       <thead>
         <tr><th class="node-name" rowspan="2">Name</th><th rowspan="2">Level</th><th colspan="2">Cost to next</th><th colspan="2">Cost to max</th></tr>
-        <tr><th>Erda</th><th>Frags</th><th>Erda</th><th>Frags</th></tr>
+        <tr><th>${ERDA_ICON}</th><th>${FRAG_ICON}</th><th>${ERDA_ICON}</th><th>${FRAG_ICON}</th></tr>
       </thead>
       <tbody>${rows || '<tr><td colspan="6" class="hint">None</td></tr>'}</tbody>
     </table>
@@ -381,7 +386,7 @@ function renderResetScrollSection(p) {
   return `<div class="panel">
     <h2>Hexa Reset Scroll</h2>
     <div class="grid">
-      <div class="stat-card"><div class="label">Total used by all skills (excluding Sol Janus)</div><div class="value">${fmt(used.se)} Sol Erdas / ${fmt(used.frag)} Fragments</div></div>
+      <div class="stat-card"><div class="label">Total used by all skills (excluding Sol Janus)</div><div class="value">${costText(used.se, used.frag)}</div></div>
     </div>
   </div>`;
 }
@@ -416,8 +421,8 @@ function renderNodesTab(p) {
   <div class="panel">
     <h2>Summary</h2>
     <div class="grid">
-      <div class="stat-card"><div class="label">Total to fully max all nodes</div><div class="value">${fmt(totalToMax.se)} Sol Erdas / ${fmt(totalToMax.frag)} Fragments</div></div>
-      <div class="stat-card"><div class="label">Spent so far (based on current levels)</div><div class="value">${fmt(spent.se)} Sol Erdas / ${fmt(spent.frag)} Fragments</div></div>
+      <div class="stat-card"><div class="label">Total to fully max all nodes</div><div class="value">${costText(totalToMax.se, totalToMax.frag)}</div></div>
+      <div class="stat-card"><div class="label">Spent so far (based on current levels)</div><div class="value">${costText(spent.se, spent.frag)}</div></div>
     </div>
     <div class="progress-bar"><div class="progress-fill" style="width:${pct.toFixed(1)}%"></div></div>
     <div class="hint">${pct.toFixed(2)}% complete</div>
@@ -490,7 +495,7 @@ function renderNextUpgrade(p, nextStep) {
   <div class="panel">
     <h2>Next Upgrade</h2>
     <div class="value" style="font-size:16px;">${nodeIcon(p.classKey, nextStep.node.key)}${nextStep.node.name}: level ${nextStep.node.level} → ${nextStep.target}</div>
-    <div class="hint">${fmt(nextStep.cost.se)} Sol Erdas / ${fmt(nextStep.cost.frag)} Fragments needed for this step ${nextStep.daysFromStart != null ? `(~${nextStep.daysFromStart.toFixed(1)} days at current rate)` : ""}</div>
+    <div class="hint">${costText(nextStep.cost.se, nextStep.cost.frag)} needed for this step ${nextStep.daysFromStart != null ? `(~${nextStep.daysFromStart.toFixed(1)} days at current rate)` : ""}</div>
   </div>`;
 }
 
@@ -534,7 +539,7 @@ function renderSequenceTab(p) {
         return `<div class="step-row ${r.done ? "done" : ""}">
         <span class="step-num">${i + 1}</span>
         <span class="step-info">${nodeIcon(p.classKey, r.node.key)}${r.node.name} → level ${r.target}
-          <span class="hint">(${fmt(r.cost.se)} SE / ${fmt(r.cost.frag)} Frag · running total: ${fmt(r.runningSE)} SE / ${fmt(r.runningFrag)} Frag${r.daysFromStart != null ? ` · ~${r.daysFromStart.toFixed(1)} days` : ""})</span>
+          <span class="hint">(${costText(r.cost.se, r.cost.frag)} · running total: ${costText(r.runningSE, r.runningFrag)}${r.daysFromStart != null ? ` · ~${r.daysFromStart.toFixed(1)} days` : ""})</span>
         </span>
       </div>`;
       })
@@ -542,18 +547,18 @@ function renderSequenceTab(p) {
   </div>
 
   <div class="panel">
-    <h2>Fragments</h2>
+    <h2>${FRAG_ICON}</h2>
     <div class="grid">
-      <div><label class="hint">Fragments owned</label><br><input type="number" id="fragOwned" value="${p.fragOwned}"></div>
-      <div><label class="hint">Fragments obtained per day</label><br><input type="number" id="fragPerDay" value="${p.fragPerDay}"></div>
+      <div><label class="hint">${FRAG_ICON} owned</label><br><input type="number" id="fragOwned" value="${p.fragOwned}"></div>
+      <div><label class="hint">${FRAG_ICON} obtained per day</label><br><input type="number" id="fragPerDay" value="${p.fragPerDay}"></div>
     </div>
   </div>
 
   <div class="panel">
     <h2>Totals</h2>
     <div class="grid">
-      <div class="stat-card"><div class="label">Total remaining in this order</div><div class="value">${fmt(runningSE)} SE / ${fmt(runningFrag)} Frag</div></div>
-      <div class="stat-card"><div class="label">Est. days to complete</div><div class="value">${totalDays != null ? totalDays.toFixed(1) + " days" : "set fragments/day"}</div></div>
+      <div class="stat-card"><div class="label">Total remaining in this order</div><div class="value">${costText(runningSE, runningFrag)}</div></div>
+      <div class="stat-card"><div class="label">Est. days to complete</div><div class="value">${totalDays != null ? totalDays.toFixed(1) + " days" : `set ${FRAG_ICON}/day`}</div></div>
     </div>
   </div>`;
 }

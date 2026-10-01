@@ -559,3 +559,15 @@ select {
   width: 110px;
   padding: 2px 4px;
 }
+
+.cur-icon {
+  height: 1.2em;
+  width: auto;
+  vertical-align: -0.25em;
+}
+th .cur-icon {
+  height: 20px;
+}
+h2 .cur-icon {
+  height: 24px;
+}
