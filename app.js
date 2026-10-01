@@ -79,6 +79,7 @@ function buildNodesFromTemplate(classKey) {
 }
 
 const STAT_CORES = ["I", "II", "III"];
+const STAT_CORE_ICONS = ["stat1.webp", "stat2.png", "stat3.png"];
 const STAT_SLOTS = [
   { key: "main", label: "Main", max: 10 },
   { key: "second", label: "2nd", max: 10 },
@@ -241,8 +242,8 @@ function render() {
   const app = document.getElementById("app");
   app.innerHTML = `
     <div class="page-header">
-    <h1>HEXA Matrix Tracker
-      <span class="help" tabindex="0" aria-label="How to use this tool">?
+    <h1><img class="page-logo" src="icons/hexa.webp" alt="">HEXA Matrix Tracker
+      <span class="help" tabindex="0" aria-label="How to use this tool"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
         <span class="help-tip">
           <strong>How to use</strong>
           <ul>
@@ -346,7 +347,7 @@ function renderStatsSection(p) {
     <div class="stat-cores">
       ${STAT_CORES.map(
         (core, ci) => `<div class="panel">
-        <h2>${core}</h2>
+        <h2><img class="stat-core-icon" src="icons/${STAT_CORE_ICONS[ci]}" alt="${core}" title="HEXA Stat ${core}"></h2>
         <table>
           <tbody>
             ${STAT_SLOTS.map(
