@@ -37,16 +37,33 @@ function nodeIcon(classKey, key) {
   return `<img class="node-icon" src="icons/${slug(classKey)}/${slug(key)}.png" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
 }
 
+// Every class gets its Origin skill (the first skill12 node) at level 1 for free.
+function isOrigin(p, n) {
+  return p.nodes.find((x) => x.type === "skill12") === n;
+}
+
+function minLevel(p, n) {
+  return isOrigin(p, n) ? 1 : 0;
+}
+
+function nodeCost(p, n, from, to) {
+  if (!isOrigin(p, n)) return costBetween(n.type, from, to);
+  return costBetween(n.type, Math.max(from, 1), Math.max(to, 1));
+}
+
 function buildNodesFromTemplate(classKey) {
   const tpl = PRIORITY_CONFIG[classKey];
   if (!tpl) return [];
-  return tpl.nodes.map((n) => ({
+  const nodes = tpl.nodes.map((n) => ({
     id: uid(),
     key: n.key,
     name: n.name || n.key,
     type: n.type,
     level: n.level,
   }));
+  const origin = nodes.find((n) => n.type === "skill12");
+  if (origin) origin.level = Math.max(origin.level, 1);
+  return nodes;
 }
 
 const STAT_CORES = ["I", "II", "III"];
@@ -151,6 +168,11 @@ function loadState() {
     try {
       const saved = JSON.parse(raw);
       syncNodeNames(saved);
+      (saved.profiles || []).forEach((p) =>
+        (p.nodes || []).forEach((n) => {
+          n.level = Math.max(minLevel(p, n), n.level);
+        }),
+      );
       return saved;
     } catch (e) {}
   }
@@ -187,7 +209,7 @@ function profileFromImportEntry(entry) {
   profile.nodes.forEach((n) => {
     if (levelByKey.hasOwnProperty(n.key)) {
       n.level = Math.max(
-        0,
+        minLevel(profile, n),
         Math.min(MAX_LEVEL, parseInt(levelByKey[n.key]) || 0),
       );
     }
@@ -267,12 +289,12 @@ function renderNodeSection(p, sec) {
     .map(({ n, idx }) => {
       const next =
         n.level < MAX_LEVEL
-          ? costBetween(n.type, n.level, n.level + 1)
+          ? nodeCost(p, n, n.level, n.level + 1)
           : { se: 0, frag: 0 };
-      const toMax = costBetween(n.type, n.level, MAX_LEVEL);
+      const toMax = nodeCost(p, n, n.level, MAX_LEVEL);
       return `<tr>
             <td class="node-name" data-fullname="${n.name}">${nodeIcon(p.classKey, n.key)}${n.name}</td>
-            <td><input type="number" min="0" max="${MAX_LEVEL}" data-action="levelNode" data-id="${n.id}" data-idx="${idx}" value="${n.level}"></td>
+            <td><input type="number" min="${minLevel(p, n)}" max="${MAX_LEVEL}" data-action="levelNode" data-id="${n.id}" data-idx="${idx}" value="${n.level}"></td>
             ${
               n.level < MAX_LEVEL
                 ? `<td>${fmt(next.se)}</td><td>${fmt(next.frag)}</td><td>${fmt(toMax.se)}</td><td>${fmt(toMax.frag)}</td>`
@@ -325,17 +347,36 @@ function renderStatsSection(p) {
   </div>`;
 }
 
+// Sol Janus isn't refunded by a HEXA Reset Scroll, so it's excluded.
+function renderResetScrollSection(p) {
+  const used = p.nodes
+    .filter((n) => !n.name.startsWith("Sol Janus"))
+    .reduce(
+      (s, n) => {
+        const c = nodeCost(p, n, 0, n.level);
+        return { se: s.se + c.se, frag: s.frag + c.frag };
+      },
+      { se: 0, frag: 0 },
+    );
+  return `<div class="panel">
+    <h2>Hexa Reset Scroll</h2>
+    <div class="grid">
+      <div class="stat-card"><div class="label">Total used by all skills (excluding Sol Janus)</div><div class="value">${fmt(used.se)} Sol Erdas / ${fmt(used.frag)} Fragments</div></div>
+    </div>
+  </div>`;
+}
+
 function renderNodesTab(p) {
   const totalToMax = p.nodes.reduce(
     (s, n) => {
-      const c = costBetween(n.type, 0, MAX_LEVEL);
+      const c = nodeCost(p, n, 0, MAX_LEVEL);
       return { se: s.se + c.se, frag: s.frag + c.frag };
     },
     { se: 0, frag: 0 },
   );
   const spent = p.nodes.reduce(
     (s, n) => {
-      const c = costBetween(n.type, 0, n.level);
+      const c = nodeCost(p, n, 0, n.level);
       return { se: s.se + c.se, frag: s.frag + c.frag };
     },
     { se: 0, frag: 0 },
@@ -370,6 +411,8 @@ function renderNodesTab(p) {
   </div>
 
   ${renderStatsSection(p)}
+
+  ${renderResetScrollSection(p)}
 `;
 }
 
@@ -392,7 +435,7 @@ function simulateSequence(p, cfg, presetNames) {
     const done = from >= target;
     const cost = done
       ? { se: 0, frag: 0 }
-      : costBetween(node.type, from, target);
+      : nodeCost(p, node, from, target);
     if (!done) {
       sim[key] = target;
       runningSE += cost.se;
@@ -679,7 +722,7 @@ function attachEvents() {
   function commitLevelInput(inputEl) {
     const n = p.nodes.find((x) => x.id === inputEl.dataset.id);
     let v = parseInt(inputEl.value) || 0;
-    v = Math.max(0, Math.min(MAX_LEVEL, v));
+    v = Math.max(minLevel(p, n), Math.min(MAX_LEVEL, v));
     n.level = v;
     saveState();
   }
