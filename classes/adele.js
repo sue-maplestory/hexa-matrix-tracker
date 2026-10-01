@@ -244,6 +244,7 @@ PRIORITY_CONFIG["Adele"] = {
       ["Infinity", 11],
       ["Maestro", 10],
       ["Maestro", 11],
+      ["Maestro", 12],
       ["Maestro", 13],
       ["Maestro", 14],
       ["common2", 17],
