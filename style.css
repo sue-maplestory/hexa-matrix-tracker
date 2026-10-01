@@ -34,12 +34,7 @@ body {
 }
 h1 {
   font-size: 22px;
-  margin: 0 0 4px;
-}
-.subtitle {
-  color: var(--muted);
-  font-size: 13px;
-  margin-bottom: 16px;
+  margin: 0 0 16px;
 }
 .topbar {
   display: flex;
@@ -326,4 +321,8 @@ select {
 .help:hover .help-tip,
 .help:focus .help-tip {
   display: block;
+}
+.help-note {
+  margin-top: 8px;
+  color: var(--muted);
 }

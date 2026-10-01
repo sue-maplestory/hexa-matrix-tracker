@@ -6,7 +6,10 @@ function uid() {
 }
 
 function slug(s) {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 // Icons live at icons/<class>/<node key>.png; missing ones just hide.
@@ -128,18 +131,18 @@ function render() {
           <strong>How to use</strong>
           <ul>
             <li>Pick your class from the <em>Class</em> box (click it and type a few letters). Use <em>+ New Profile</em> to track more characters.</li>
-            <li><em>Node Tracker</em>: enter the current level of each HEXA skill. Costs to the next level and to max update automatically.</li>
-            <li><em>Upgrade Priority</em>: follows a recommended leveling order. Enter your fragments owned and gained per day to estimate how long each step takes.</li>
+            <li><em>HEXA Tracker</em>: Enter the current level of each HEXA skill. Costs to the next level and to max update automatically.</li>
+            <li><em>Upgrade Priority</em>: Follows a recommended leveling order. Enter your fragments owned and gained per day to estimate how long each step takes.</li>
             <li><em>Next Upgrade</em> shows the next step in the priority order you haven't completed yet.</li>
             <li>Progress saves automatically in this browser. Use <em>Export JSON</em> / <em>Import JSON</em> to back up or move it.</li>
           </ul>
+          <div class="help-note">Costs are verified against source data. The leveling priority order is locked to a fixed configuration.</div>
         </span>
       </span>
     </h1>
-    <div class="subtitle">Costs verified against source data. Leveling priority order is locked to a fixed configuration</div>
     ${renderTopbar()}
     <div class="tabs">
-      <button data-tab="nodes" class="${activeTab === "nodes" ? "active" : ""}">Node Tracker</button>
+      <button data-tab="nodes" class="${activeTab === "nodes" ? "active" : ""}">HEXA Tracker</button>
       <button data-tab="sequence" class="${activeTab === "sequence" ? "active" : ""}">Upgrade Priority</button>
     </div>
     ${activeTab === "nodes" ? renderNodesTab(p) : ""}
@@ -244,11 +247,12 @@ function renderNodesTab(p) {
   <div class="node-sections">
     ${NODE_SECTIONS.map((sec) => renderNodeSection(p, sec)).join("")}
   </div>
-  <div class="hint">Skill names, types, and costs are all fixed.</div>`;
+`;
 }
 
 function simulateSequence(p, cfg, presetNames) {
-  const seq = cfg.priorities[p.presetName] || cfg.priorities[presetNames[0]];
+  const presetName = cfg.priorities[p.presetName] ? p.presetName : presetNames[0];
+  const seq = cfg.priorities[presetName];
   const nodesByKey = {};
   p.nodes.forEach((n) => (nodesByKey[n.key] = n));
   const sim = {};
@@ -292,7 +296,7 @@ function simulateSequence(p, cfg, presetNames) {
     p.fragPerDay > 0
       ? Math.max(0, runningFrag - p.fragOwned) / p.fragPerDay
       : null;
-  return { rows, nextStep, runningSE, runningFrag, totalDays };
+  return { rows, nextStep, runningSE, runningFrag, totalDays, presetName };
 }
 
 function renderNextUpgrade(p, nextStep) {
@@ -315,7 +319,7 @@ function renderSequenceTab(p) {
     </div>`;
   }
 
-  const { rows, nextStep, runningSE, runningFrag, totalDays } =
+  const { rows, nextStep, runningSE, runningFrag, totalDays, presetName } =
     simulateSequence(p, cfg, presetNames);
 
   return `
@@ -335,7 +339,7 @@ function renderSequenceTab(p) {
   ${nextStep ? renderNextUpgrade(p, nextStep) : ""}
 
   <div class="panel">
-    <h2>Priority Order — ${p.presetName}</h2>
+    <h2>Priority Order — ${presetName}</h2>
     <div class="hint" style="margin-bottom:8px;">Completed steps (based on your current node levels) are dimmed and struck through.</div>
     ${rows
       .map((r, i) => {
@@ -373,7 +377,9 @@ function renderSequenceTab(p) {
    key, null for "None", or undefined if cancelled. */
 function pickClassTemplate() {
   return new Promise((resolve) => {
-    const classNames = Object.keys(PRIORITY_CONFIG).sort((a, b) => a.localeCompare(b));
+    const classNames = Object.keys(PRIORITY_CONFIG).sort((a, b) =>
+      a.localeCompare(b),
+    );
     const dlg = document.createElement("dialog");
     dlg.style.cssText =
       "background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:16px;";
