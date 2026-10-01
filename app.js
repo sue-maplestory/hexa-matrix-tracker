@@ -152,6 +152,40 @@ function renderTopbar() {
   </div>`;
 }
 
+const NODE_SECTIONS = [
+  { title: "Origin / Ascent", types: ["skill12", "skill3"] },
+  { title: "Mastery", types: ["mastery"] },
+  { title: "Boost", types: ["boost"] },
+  { title: "Common", types: ["common12", "common3"] },
+];
+
+function renderNodeSection(p, sec) {
+  const rows = p.nodes
+    .map((n, idx) => ({ n, idx }))
+    .filter(({ n }) => sec.types.includes(n.type))
+    .map(({ n, idx }) => {
+      const next =
+        n.level < MAX_LEVEL
+          ? costBetween(n.type, n.level, n.level + 1)
+          : { se: 0, frag: 0 };
+      const toMax = costBetween(n.type, n.level, MAX_LEVEL);
+      return `<tr>
+            <td class="node-name" data-fullname="${n.name}">${nodeIcon(p.classKey, n.key)}${n.name}</td>
+            <td><input type="number" min="0" max="${MAX_LEVEL}" data-action="levelNode" data-id="${n.id}" data-idx="${idx}" value="${n.level}"></td>
+            <td>${n.level < MAX_LEVEL ? `${next.se} Erdas / ${next.frag} Frags` : '<span class="lockbadge" style="background:var(--good);color:#111">MAX</span>'}</td>
+            <td>${toMax.se} Erdas / ${toMax.frag} Frags</td>
+          </tr>`;
+    })
+    .join("");
+  return `<div class="panel">
+    <h2>${sec.title}</h2>
+    <table>
+      <thead><tr><th class="node-name">Name</th><th>Level</th><th>Cost to next</th><th>Cost to max</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="4" class="hint">None</td></tr>'}</tbody>
+    </table>
+  </div>`;
+}
+
 function renderNodesTab(p) {
   const totalToMax = p.nodes.reduce(
     (s, n) => {
@@ -180,31 +214,10 @@ function renderNodesTab(p) {
     <div class="hint">${pct.toFixed(2)}% complete</div>
   </div>
 
-  <div class="panel">
-    <h2>Nodes</h2>
-    <table>
-      <thead><tr><th>Name</th><th>Type</th><th>Level</th><th>Cost to next</th><th>Cost to max</th></tr></thead>
-      <tbody>
-        ${p.nodes
-          .map((n, idx) => {
-            const next =
-              n.level < MAX_LEVEL
-                ? costBetween(n.type, n.level, n.level + 1)
-                : { se: 0, frag: 0 };
-            const toMax = costBetween(n.type, n.level, MAX_LEVEL);
-            return `<tr>
-            <td>${nodeIcon(p.classKey, n.key)}${n.name}</td>
-            <td>${TYPE_LABEL[n.type] || n.type}</td>
-            <td><input type="number" min="0" max="${MAX_LEVEL}" data-action="levelNode" data-id="${n.id}" data-idx="${idx}" value="${n.level}"></td>
-            <td>${n.level < MAX_LEVEL ? `${next.se} Erdas / ${next.frag} Frags` : '<span class="lockbadge" style="background:var(--good);color:#111">MAX</span>'}</td>
-            <td>${toMax.se} Erdas / ${toMax.frag} Frags</td>
-          </tr>`;
-          })
-          .join("")}
-      </tbody>
-    </table>
-    <div class="hint">Skill names, types, and costs are all fixed.</div>
-  </div>`;
+  <div class="node-sections">
+    ${NODE_SECTIONS.map((sec) => renderNodeSection(p, sec)).join("")}
+  </div>
+  <div class="hint">Skill names, types, and costs are all fixed.</div>`;
 }
 
 function renderSequenceTab(p) {
@@ -549,5 +562,23 @@ function attachEvents() {
       render();
     };
 }
+
+// Custom tooltip for truncated skill names (native title tooltips were unreliable)
+const nameTip = document.createElement("div");
+nameTip.className = "name-tip";
+document.body.appendChild(nameTip);
+document.addEventListener("mouseover", (e) => {
+  const cell = e.target.closest && e.target.closest("[data-fullname]");
+  if (!cell) return;
+  nameTip.textContent = cell.dataset.fullname;
+  const r = cell.getBoundingClientRect();
+  nameTip.style.display = "block";
+  nameTip.style.left = `${Math.min(r.left, window.innerWidth - nameTip.offsetWidth - 8)}px`;
+  nameTip.style.top = `${r.bottom + 4}px`;
+});
+document.addEventListener("mouseout", (e) => {
+  const cell = e.target.closest && e.target.closest("[data-fullname]");
+  if (cell && !cell.contains(e.relatedTarget)) nameTip.style.display = "none";
+});
 
 render();

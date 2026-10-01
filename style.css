@@ -230,3 +230,44 @@ select {
   margin-right: 8px;
   image-rendering: auto;
 }
+.node-sections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.node-sections .panel {
+  margin-bottom: 0;
+  min-width: 0;
+  overflow-x: auto;
+}
+@media (max-width: 1100px) {
+  .node-sections {
+    grid-template-columns: 1fr;
+  }
+}
+.node-sections td.node-name,
+.node-sections th.node-name {
+  width: 100%;
+  max-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.node-sections td:not(.node-name),
+.node-sections th:not(.node-name) {
+  white-space: nowrap;
+}
+.name-tip {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  max-width: 360px;
+  padding: 4px 8px;
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  pointer-events: none;
+}
