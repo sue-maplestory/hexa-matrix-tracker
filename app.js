@@ -139,9 +139,10 @@ function renderTopbar() {
   return `
   <div class="topbar">
     <label style="color:var(--muted);font-size:12px;">Class:</label>
-    <select id="profileSelect">
-      ${names.map((n) => `<option value="${n}" ${n === state.current ? "selected" : ""}>${n}</option>`).join("")}
-    </select>
+    <input id="profileSelect" list="profileList" value="${state.current}" placeholder="Type to search" autocomplete="off" />
+    <datalist id="profileList">
+      ${names.map((n) => `<option value="${n}"></option>`).join("")}
+    </datalist>
     <button id="newProfileBtn">+ New Profile</button>
     <button id="renameProfileBtn">Rename</button>
     <button class="danger" id="deleteProfileBtn">Delete</button>
@@ -326,25 +327,36 @@ function renderSequenceTab(p) {
    key, null for "None", or undefined if cancelled. */
 function pickClassTemplate() {
   return new Promise((resolve) => {
+    const classNames = Object.keys(PRIORITY_CONFIG).sort((a, b) => a.localeCompare(b));
     const dlg = document.createElement("dialog");
     dlg.style.cssText =
       "background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:16px;";
     dlg.innerHTML = `
       <form method="dialog">
         <label>Base this on which class template?<br /><br />
-          <select id="classTemplateSelect">
-            <option value="">None</option>
-            ${Object.keys(PRIORITY_CONFIG).sort((a, b) => a.localeCompare(b)).map((n) => `<option value="${n}">${n}</option>`).join("")}
-          </select>
+          <input id="classTemplateInput" list="classTemplateList" placeholder="Type to search (blank = None)" autocomplete="off" />
+          <datalist id="classTemplateList">
+            ${classNames.map((n) => `<option value="${n}"></option>`).join("")}
+          </datalist>
         </label>
         <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
-          <button value="cancel">Cancel</button>
+          <button value="cancel" formnovalidate>Cancel</button>
           <button value="ok">OK</button>
         </div>
       </form>`;
+    const input = dlg.querySelector("input");
+    const matchClass = () => {
+      const t = input.value.trim().toLowerCase();
+      return classNames.find((n) => n.toLowerCase() === t) || null;
+    };
+    input.addEventListener("input", () => {
+      input.setCustomValidity(
+        input.value.trim() && !matchClass() ? "Pick a class from the list" : "",
+      );
+    });
     dlg.addEventListener("close", () => {
       const ok = dlg.returnValue === "ok";
-      const val = dlg.querySelector("select").value;
+      const val = matchClass();
       dlg.remove();
       resolve(ok ? val || null : undefined);
     });
@@ -363,12 +375,25 @@ function attachEvents() {
   );
 
   const profileSelect = document.getElementById("profileSelect");
-  if (profileSelect)
-    profileSelect.onchange = (e) => {
-      state.current = e.target.value;
-      saveState();
-      render();
+  if (profileSelect) {
+    const matchProfile = () => {
+      const t = profileSelect.value.trim().toLowerCase();
+      return Object.keys(state.profiles).find((n) => n.toLowerCase() === t);
     };
+    // Clear on focus so the full list shows; restore if nothing valid is chosen
+    profileSelect.onfocus = () => (profileSelect.value = "");
+    profileSelect.onblur = () => {
+      if (!matchProfile()) profileSelect.value = state.current;
+    };
+    profileSelect.oninput = () => {
+      const match = matchProfile();
+      if (match && match !== state.current) {
+        state.current = match;
+        saveState();
+        render();
+      }
+    };
+  }
 
   const newBtn = document.getElementById("newProfileBtn");
   if (newBtn)
