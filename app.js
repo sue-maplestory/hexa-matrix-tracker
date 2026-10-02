@@ -197,9 +197,28 @@ function loadState() {
   return defaultState();
 }
 
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+// Data is always auto-saved to this browser; "unsaved" means changes made since
+// the last backup export. Persisted so it survives a reload.
+const DIRTY_KEY = "hexaMatrixTrackerUnsaved";
+let unsaved = localStorage.getItem(DIRTY_KEY) === "1";
+
+function setUnsaved(v) {
+  unsaved = v;
+  if (v) localStorage.setItem(DIRTY_KEY, "1");
+  else localStorage.removeItem(DIRTY_KEY);
+  const badge = document.getElementById("unsavedBadge");
+  if (badge) badge.hidden = !v;
 }
+
+// markDirty = false for changes a backup doesn't capture (selection, fragments, preset)
+function saveState(markDirty = true) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (markDirty) setUnsaved(true);
+}
+
+window.addEventListener("beforeunload", (e) => {
+  if (unsaved) e.preventDefault();
+});
 
 let state = loadState();
 let activeTab = "nodes";
@@ -288,16 +307,17 @@ function renderTopbar() {
 
 function renderHeaderControls() {
   return `<div class="header-controls">
-    <label style="color:var(--muted);font-size:12px;">Theme:</label>
-    <select id="themeSelect">
-      ${THEMES.map(([id, label]) => `<option value="${id}" ${id === theme ? "selected" : ""}>${label}</option>`).join("")}
-    </select>
+    <span id="unsavedBadge" class="unsaved-badge" ${unsaved ? "" : "hidden"} title="Changes are saved in this browser, but not backed up to a file. Click the save icon to export a backup.">● Unsaved changes</span>
     <button id="exportBtn" class="icon-btn" data-fullname="Save backup (Export JSON)" aria-label="Export JSON">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
     </button>
     <button id="importBtn" class="icon-btn" data-fullname="Load backup (Import JSON)" aria-label="Import JSON">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><path d="M12 17v-6"/><path d="m9 14 3-3 3 3"/></svg>
     </button>
+    <label style="color:var(--muted);font-size:12px;">Theme:</label>
+    <select id="themeSelect">
+      ${THEMES.map(([id, label]) => `<option value="${id}" ${id === theme ? "selected" : ""}>${label}</option>`).join("")}
+    </select>
   </div>`;
 }
 
@@ -639,7 +659,7 @@ function attachEvents() {
         return;
       }
       state.current = name;
-      saveState();
+      saveState(false);
       render();
     };
   });
@@ -734,6 +754,7 @@ function attachEvents() {
       a.download = "hexa-matrix-tracker-backup.json";
       a.click();
       URL.revokeObjectURL(url);
+      setUnsaved(false);
     };
   const importBtn = document.getElementById("importBtn");
   const importFile = document.getElementById("importFile");
@@ -762,7 +783,8 @@ function attachEvents() {
           }
           state.profiles = newProfiles;
           state.current = Object.keys(newProfiles)[0];
-          saveState();
+          saveState(false);
+          setUnsaved(false); // state now matches the imported file
           render();
         } catch (err) {
           alert("Could not read file.");
@@ -837,21 +859,21 @@ function attachEvents() {
   if (fragOwned)
     fragOwned.onchange = (e) => {
       p.fragOwned = parseInt(e.target.value) || 0;
-      saveState();
+      saveState(false);
       render();
     };
   const fragPerDay = document.getElementById("fragPerDay");
   if (fragPerDay)
     fragPerDay.onchange = (e) => {
       p.fragPerDay = parseInt(e.target.value) || 0;
-      saveState();
+      saveState(false);
       render();
     };
   const presetSelect = document.getElementById("presetSelect");
   if (presetSelect)
     presetSelect.onchange = (e) => {
       p.presetName = e.target.value;
-      saveState();
+      saveState(false);
       render();
     };
 }
